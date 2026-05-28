@@ -1,0 +1,6 @@
+{
+  "name": "Buendía - Lara Peçanha",
+  "description": "Papelaria criativa e presentes premium de estética clean, moderna e delicada.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

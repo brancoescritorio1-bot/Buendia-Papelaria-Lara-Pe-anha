@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,450&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", "Georgia", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Buendía Editorial Palette */
+  --color-buendia-navy: #1A2E44;      /* Azul marinho sofisticado editorial */
+  --color-buendia-yellow: #FFF1C1;    /* Amarelo pastel editorial */
+  --color-buendia-pink: #FDE2E4;      /* Rosa pastel editorial */
+  --color-buendia-blue: #D1E9F6;      /* Azul claro pastel editorial */
+  --color-buendia-cream: #FFFFFF;     /* Pure white editorial background */
+  --color-buendia-gray: #7E8B99;      /* Cinza médio elegante */
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-subtle-zoom: subtle-zoom 10s infinite alternate ease-in-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes subtle-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.04); }
+}
+
+/* Custom fine-tuning for Editorial & Sophisticated vibes */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-buendia-cream);
+  color: #1A2E44;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Base header aesthetics with Poppins font */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 42, 74, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 42, 74, 0.3);
+}
+
+/* Print Invoice styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
