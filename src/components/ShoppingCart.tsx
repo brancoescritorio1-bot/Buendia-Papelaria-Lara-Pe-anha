@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ShoppingBag, X, Trash2, ArrowRight, Tag, HelpCircle, Check, AlertCircle, MessageSquare } from 'lucide-react';
 import { CartItem, Coupon, Order, OrderItem } from '../types';
@@ -31,12 +31,12 @@ export default function ShoppingCart({
   coupons,
   whatsappNumber,
 }: ShoppingCartProps) {
-  const { user } = useAuth();
+  const { user } = useAuth() as any;
   
-  // Local checkout fields for seamless purchase without strict login
-  const [guestName, setGuestName] = useState('');
-  const [guestPhone, setGuestPhone] = useState('');
-  const [guestEmail, setGuestEmail] = useState('');
+  // Local checkout fields initialized with authenticated data if available for seamless checkout
+  const [guestName, setGuestName] = useState(user?.fullName || '');
+  const [guestPhone, setGuestPhone] = useState(user?.phone || '');
+  const [guestEmail, setGuestEmail] = useState(user?.email || '');
   const [paymentMethod, setPaymentMethod] = useState<'Pix' | 'cartão' | 'dinheiro' | 'transferência'>('Pix');
   const [checkoutStep, setCheckoutStep] = useState<'cart' | 'details' | 'success'>('cart');
 
@@ -49,6 +49,14 @@ export default function ShoppingCart({
   // Generated Order store
   const [generatedOrder, setGeneratedOrder] = useState<Order | null>(null);
   const [wppDirectUrl, setWppDirectUrl] = useState('');
+
+  useEffect(() => {
+    if (user && checkoutStep === 'cart') {
+      setGuestName(user.fullName || '');
+      setGuestPhone(user.phone || '');
+      setGuestEmail(user.email || '');
+    }
+  }, [user, checkoutStep]);
 
   if (!isOpen) return null;
 
@@ -243,9 +251,9 @@ export default function ShoppingCart({
   const resetAfterSuccess = () => {
     onClearCart();
     setCheckoutStep('cart');
-    setGuestName('');
-    setGuestPhone('');
-    setGuestEmail('');
+    setGuestName(user?.fullName || '');
+    setGuestPhone(user?.phone || '');
+    setGuestEmail(user?.email || '');
     setAppliedCoupon(null);
     setCouponCode('');
     setGeneratedOrder(null);
@@ -406,7 +414,7 @@ export default function ShoppingCart({
                         ) : (
                           <button
                             onClick={handleApplyCoupon}
-                            className="bg-buendia-navy text-white text-xs font-bold px-4 rounded-2xl hover:bg-opacity-95 transition-colors cursor-pointer"
+                            className="bg-buendia-blue text-buendia-navy text-xs font-bold px-4 rounded-2xl hover:bg-opacity-95 transition-colors cursor-pointer border border-buendia-navy/10"
                           >
                             Aplicar
                           </button>
@@ -483,7 +491,7 @@ export default function ShoppingCart({
                         onClick={() => setPaymentMethod(method as any)}
                         className={`py-2 px-3 text-xs font-semibold rounded-xl border text-center transition-all ${
                           paymentMethod === method
-                            ? 'bg-buendia-navy text-white'
+                            ? 'bg-buendia-blue text-buendia-navy border-buendia-navy shadow-sm font-bold'
                             : 'bg-white border-neutral-200 hover:border-neutral-300'
                         }`}
                       >
@@ -503,7 +511,7 @@ export default function ShoppingCart({
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 px-4 bg-buendia-navy text-white rounded-xl text-xs font-bold hover:bg-opacity-95"
+                    className="flex-1 py-3 px-4 bg-buendia-blue text-buendia-navy border border-buendia-navy/10 rounded-xl text-xs font-bold hover:bg-opacity-95"
                   >
                     Confirmar Pedido
                   </button>
@@ -592,7 +600,7 @@ export default function ShoppingCart({
 
                 <button
                   onClick={validateAndProceed}
-                  className="w-full bg-[#EA4C89] text-white hover:bg-[#E03A77] text-xs font-bold uppercase tracking-wider py-4 rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
+                  className="w-full bg-buendia-blue text-buendia-navy hover:bg-opacity-90 border border-buendia-navy/10 text-xs font-extrabold uppercase tracking-wider py-4 rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
                 >
                   <span>Finalizar Compra</span>
                   <ArrowRight className="h-4 w-4" />

@@ -301,11 +301,11 @@ function MainAppContent() {
         if (!text && !coupon) return null;
 
         return (
-          <div className="bg-buendia-navy text-white text-[10px] font-display uppercase tracking-widest py-2 text-center font-semibold select-none flex items-center justify-center gap-1.5 px-4 min-h-[30px] print:hidden">
+          <div className="bg-buendia-pink text-buendia-navy text-[10px] font-display uppercase tracking-widest py-2 text-center font-semibold select-none flex items-center justify-center gap-1.5 px-4 min-h-[30px] print:hidden">
             {text && <span>{text}</span>}
             {coupon && coupon.trim() !== '' && (
               <>
-                <strong className="bg-[#FFF89A] text-buendia-navy px-1.5 py-0.5 rounded-sm font-bold">
+                <strong className="bg-white text-buendia-navy px-1.5 py-0.5 rounded-sm font-bold">
                   {coupon}
                 </strong>
                 {suffix && suffix.trim() !== '' && <span>{suffix}</span>}
@@ -437,7 +437,7 @@ function MainAppContent() {
                     <HelpCircle className="h-10 w-10 text-[#7E8B99]/40 mx-auto mb-2" />
                     <h4 className="font-display font-semibold text-sm text-buendia-navy">Mimo não encontrado</h4>
                     <p className="text-xs text-[#7E8B99] mt-1.5">
-                      Não encontramos produtos correspondentes ao filtro atual. Tente alterar sua pesquisa ou navegue pelas coleções! 🌸
+                      Não encontramos produtos correspondentes ao filtro atual. Tente alterar sua pesquisa ou navegue pelas coleções!
                     </p>
                   </div>
                 ) : (
@@ -488,13 +488,13 @@ function MainAppContent() {
                                     {/* Center core layout flex */}
                                     <div className="max-w-7xl mx-auto h-full px-6 sm:px-16 flex flex-col md:flex-row items-center justify-between gap-6 relative z-10 py-6">
                                       <div className="flex-1 text-center md:text-left space-y-3 sm:space-y-4 max-w-xl">
-                                        <div className="inline-block px-3 py-1 bg-white/40 backdrop-blur-md rounded-full text-[9px] uppercase tracking-[0.2em] font-bold text-[#1A2E44]">
-                                          Coleção Exclusiva ✨
+                                        <div className="inline-block px-3 py-1 bg-white/40 backdrop-blur-md rounded-full text-[9px] uppercase tracking-[0.2em] font-bold text-buendia-navy">
+                                          Coleção Exclusiva
                                         </div>
-                                        <h1 className="font-display font-bold text-2xl sm:text-4xl text-[#1A2E44] leading-[1.1] tracking-tight">
+                                        <h1 className="font-display font-bold text-2xl sm:text-4xl text-buendia-navy leading-[1.1] tracking-tight">
                                           {item.title}
                                         </h1>
-                                        <p className="text-xs sm:text-sm text-[#1A2E44]/80 leading-relaxed font-sans font-light max-w-sm">
+                                        <p className="text-xs sm:text-sm text-buendia-navy/80 leading-relaxed font-sans font-light max-w-sm">
                                           {item.subtitle}
                                         </p>
                                         
@@ -506,7 +506,7 @@ function MainAppContent() {
                                                 if (catId) handleCategorySelect(catId);
                                               }
                                             }}
-                                            className="bg-[#1A2E44] text-white text-[10px] sm:text-xs font-semibold uppercase tracking-widest py-3 px-8 rounded-full hover:bg-opacity-95 transition-all shadow-md inline-flex items-center gap-1.5 cursor-pointer"
+                                            className="bg-buendia-blue text-buendia-navy text-[10px] sm:text-xs font-bold uppercase tracking-widest py-3 px-8 rounded-full hover:bg-opacity-95 transition-all shadow-sm inline-flex items-center gap-1.5 cursor-pointer border border-buendia-navy/10"
                                           >
                                             <span>Ver Novidades</span>
                                             <ArrowRight className="h-4 w-4" />
@@ -534,8 +534,8 @@ function MainAppContent() {
                                   onClick={() => setActiveSlide(i)}
                                   className={`h-1.5 rounded-full transition-all duration-500 cursor-pointer ${
                                     activeSlide === i 
-                                      ? 'w-12 bg-[#1A2E44]' 
-                                      : i === 0 ? 'w-4 bg-[#D1E9F6]' : i === 1 ? 'w-4 bg-[#FFF1C1]' : 'w-4 bg-[#FDE2E4]'
+                                      ? 'w-12 bg-buendia-navy' 
+                                      : i === 0 ? 'w-4 bg-buendia-blue' : i === 1 ? 'w-4 bg-buendia-yellow' : 'w-4 bg-buendia-pink'
                                   }`}
                                 />
                               ))}
@@ -749,7 +749,7 @@ function MainAppContent() {
       </main>
 
       {/* FOOTER WIDGET */}
-      <footer className="bg-buendia-navy text-white py-12 px-4 sm:px-6 border-t-4 border-[#FFF89A] print:hidden">
+      <footer className="bg-buendia-blue text-buendia-navy py-12 px-4 sm:px-6 border-t-4 border-buendia-yellow/50 print:hidden">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 text-xs items-center md:items-start">
           
           {/* Logo / Brand slogan text */}
@@ -763,26 +763,26 @@ function MainAppContent() {
             ) : (
               <span className="font-display text-lg font-black tracking-tight block">Buendía - Lara Peçanha</span>
             )}
-            <p className="text-neutral-300 leading-relaxed max-w-sm">
+            <p className="text-buendia-navy/70 leading-relaxed max-w-sm">
               Papelaria criativa e presentes personalizados que transformam pequenas anotações e dias em instantes de beleza e cor.
             </p>
           </div>
 
           {/* Location and Contacts */}
           <div className="space-y-4 flex flex-col items-center md:items-start text-center md:text-left">
-            <strong className="block font-display text-sm tracking-wider uppercase text-[#FFF89A]">Atendimento</strong>
-            <div className="space-y-3 text-neutral-300">
+            <strong className="block font-display text-sm tracking-wider uppercase text-buendia-navy font-bold">Atendimento</strong>
+            <div className="space-y-3 text-buendia-navy/80 font-medium">
               <div className="flex items-start gap-2 justify-center md:justify-start">
-                <MapPin className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                <MapPin className="h-4 w-4 text-buendia-navy/40 mt-0.5 shrink-0" />
                 <span>{settings.address}</span>
               </div>
               <div className="flex items-center gap-2 justify-center md:justify-start">
-                <Phone className="h-4 w-4 text-sky-300 shrink-0" />
+                <Phone className="h-4 w-4 text-buendia-navy/40 shrink-0" />
                 <span>{settings.phoneNumber}</span>
               </div>
               <div className="flex items-center gap-2 justify-center md:justify-start">
-                <Instagram className="h-4 w-4 text-pink-300 shrink-0" />
-                <a href={`https://instagram.com/${settings.instagramHandle}`} target="_blank" rel="noopener" className="hover:underline hover:text-[#FFDEFA]">
+                <Instagram className="h-4 w-4 text-buendia-navy/40 shrink-0" />
+                <a href={`https://instagram.com/${settings.instagramHandle}`} target="_blank" rel="noopener" className="hover:underline">
                   @{settings.instagramHandle}
                 </a>
               </div>
@@ -826,7 +826,7 @@ function MainAppContent() {
             <div className="flex-grow overflow-y-auto space-y-4">
               {favorites.length === 0 ? (
                 <div className="h-60 flex flex-col items-center justify-center text-center text-xs text-[#7E8B99]">
-                  Nenhum fofura salva ainda. Toque no coraçãozinho dos produtos para salvar aqui! 🌸
+                  Nenhum produto salvo ainda. Toque no coraçãozinho dos produtos para salvar aqui!
                 </div>
               ) : (
                 products.filter(p => favorites.includes(p.id)).map(fav => {

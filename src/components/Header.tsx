@@ -35,11 +35,11 @@ export default function Header({
   onSelectProduct,
   settings,
 }: HeaderProps) {
-  const { user, loginGoogle, logout, signUpWithPhone } = useAuth();
+  const { user, loginCustomer, logout } = useAuth() as any;
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   
-  // States for simplified manual registration in Clerk Simulation
+  // States for simplified manual registration 
   const [registerName, setRegisterName] = useState('');
   const [registerPhone, setRegisterPhone] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
@@ -55,15 +55,10 @@ export default function Header({
   const handleManualSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!registerName || !registerPhone) return;
-    await signUpWithPhone(registerName, registerPhone);
+    await loginCustomer?.(registerName, registerPhone);
     setShowAuthModal(false);
     setRegisterName('');
     setRegisterPhone('');
-  };
-
-  const selectSpecialAdmin = async () => {
-    await signUpWithPhone('Lara Peçanha (Admin)', '(38) 99999-0449');
-    setShowAuthModal(false);
   };
 
   return (
@@ -233,58 +228,33 @@ export default function Header({
         </div>
       </div>
 
-      {/* CLERK SIMULATION AUTH MODAL */}
+      {/* CUSTOMER LOGIN MODAL */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-slide-up border border-buendia-navy/10">
-            {/* Header branding */}
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-slide-up border border-buendia-navy/10 font-sans">
             <div className="bg-[#FCFBF7] px-6 py-8 text-center relative border-b border-neutral-100">
               <button 
                 onClick={() => setShowAuthModal(false)}
-                className="absolute top-4 right-4 text-[#7E8B99] hover:text-buendia-navy text-sm font-semibold p-1.5 hover:bg-neutral-100 rounded-full h-8 w-8 flex items-center justify-center"
+                className="absolute top-4 right-4 text-[#7E8B99] hover:text-buendia-navy text-sm font-semibold p-1.5 hover:bg-neutral-100 rounded-full h-8 w-8 flex items-center justify-center cursor-pointer transition-colors"
+                title="Fechar"
               >
                 ✕
               </button>
-              <h3 className="font-display font-bold text-lg text-buendia-navy">Buendía - Lara Peçanha</h3>
-              <p className="text-xs text-[#7E8B99] mt-1">Conecte-se com segurança via Clerk Auth</p>
+              <h3 className="font-display font-bold text-lg text-buendia-navy text-center mb-1">Acesse sua Conta</h3>
+              <p className="text-xs text-[#7E8B99] text-center">Insira seus dados para salvar favoritos e agilizar os pedidos.</p>
             </div>
 
-            {/* Modal Body */}
             <div className="p-6">
-              {/* Google Social flow emulation */}
-              <button
-                onClick={() => {
-                  loginGoogle();
-                  setShowAuthModal(false);
-                }}
-                className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-buendia-navy/10 rounded-full hover:bg-neutral-50 transition-colors text-xs font-bold text-buendia-navy focus:outline-hidden mb-6 cursor-pointer"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24">
-                  <path fill="#EA4335" d="M12 5.04c1.74 0 3.3.6 4.53 1.77l3.39-3.39C17.85 1.54 15.11 1 12 1 7.35 1 3.4 3.65 1.54 7.5l3.86 3C6.31 7.37 8.94 5.04 12 5.04z" />
-                  <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.12 2.73-2.38 3.58l3.71 2.88c2.16-1.99 3.42-4.93 3.42-8.61z" />
-                  <path fill="#FBBC05" d="M5.4 14.5c-.25-.75-.4-1.55-.4-2.38s.15-1.63.4-2.38L1.54 6.74C.56 8.71 0 10.9 0 13.22c0 2.32.56 4.51 1.54 6.48l3.86-3.2z" />
-                  <path fill="#34A853" d="M12 23c3.21 0 5.91-1.06 7.88-2.88l-3.71-2.88c-1.1.74-2.51 1.18-4.17 1.18-3.06 0-5.69-2.33-6.6-5.46l-3.86 3C3.4 19.35 7.35 23 12 23z" />
-                </svg>
-                Continuar com o Google
-              </button>
-
-              <div className="relative flex py-2 items-center">
-                <div className="flex-grow border-t border-neutral-100"></div>
-                <span className="flex-shrink mx-4 text-[10px] text-[#7E8B99] font-bold uppercase tracking-wider">Ou cadastre-se</span>
-                <div className="flex-grow border-t border-neutral-100"></div>
-              </div>
-
-              {/* Form Manual Setup */}
-              <form onSubmit={handleManualSignUp} className="space-y-4 mt-4">
+              <form onSubmit={handleManualSignUp} className="space-y-4 text-left">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-buendia-navy mb-1.5">Seu Nome</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-buendia-navy mb-1.5">Seu Nome Completo</label>
                   <input
                     type="text"
                     required
                     placeholder="Ex: Ana Souza"
                     value={registerName}
                     onChange={(e) => setRegisterName(e.target.value)}
-                    className="w-full bg-[#FCFBF7] text-xs text-buendia-navy border border-buendia-navy/10 rounded-2xl p-3 focus:ring-2 focus:ring-buendia-blue/40 focus:outline-hidden"
+                    className="w-full bg-[#FCFBF7] text-xs text-buendia-navy border border-buendia-navy/10 rounded-2xl p-3 focus:ring-2 focus:ring-buendia-navy/30 focus:outline-hidden"
                   />
                 </div>
 
@@ -296,19 +266,19 @@ export default function Header({
                     placeholder="Ex: (38) 99999-0449"
                     value={registerPhone}
                     onChange={(e) => setRegisterPhone(e.target.value)}
-                    className="w-full bg-[#FCFBF7] text-xs text-buendia-navy border border-buendia-navy/10 rounded-2xl p-3 focus:ring-2 focus:ring-buendia-blue/40 focus:outline-hidden"
+                    className="w-full bg-[#FCFBF7] text-xs text-buendia-navy border border-buendia-navy/10 rounded-2xl p-3 focus:ring-2 focus:ring-buendia-navy/30 focus:outline-hidden"
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full bg-buendia-navy text-white text-xs font-bold py-3 px-4 rounded-full hover:bg-opacity-95 transition-all shadow-md cursor-pointer"
-                >
-                  Criar Conta
-                </button>
+                <div className="pt-4 pb-2">
+                  <button
+                    type="submit"
+                    className="w-full bg-buendia-navy text-white text-xs font-bold rounded-2xl py-3.5 hover:bg-opacity-95 transition-all text-center cursor-pointer shadow-sm"
+                  >
+                    Entrar e Salvar Conta
+                  </button>
+                </div>
               </form>
-
-
             </div>
           </div>
         </div>

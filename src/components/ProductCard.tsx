@@ -97,7 +97,7 @@ export default function ProductCard({
         {/* Esgotado Layer */}
         {product.isOutOfStock && (
           <div className="absolute inset-0 bg-white/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <span className="bg-buendia-navy text-white text-[10px] uppercase font-bold tracking-widest px-4 py-2 rounded-full shadow-md">
+            <span className="bg-buendia-blue text-buendia-navy border border-buendia-navy/10 text-[10px] uppercase font-bold tracking-widest px-4 py-2 rounded-full shadow-md">
               Esgotado
             </span>
           </div>
@@ -118,7 +118,7 @@ export default function ProductCard({
             </button>
             <button
               onClick={handleQuickAdd}
-              className="p-2.5 bg-buendia-navy text-white rounded-full shadow-md translate-y-3 group-hover:translate-y-0 transition-transform cursor-pointer"
+              className="p-2.5 bg-buendia-blue text-buendia-navy rounded-full shadow-md translate-y-3 group-hover:translate-y-0 transition-transform cursor-pointer border border-buendia-navy/10"
               title="Adicionar direto"
             >
               <ShoppingBag className="h-4 w-4" />

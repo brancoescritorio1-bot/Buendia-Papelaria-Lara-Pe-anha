@@ -23,7 +23,7 @@ export default function WhatsAppButton({ phoneNumber }: WhatsAppButtonProps) {
       title="Falar com Lara no WhatsApp"
     >
       {/* Decorative pulse ring */}
-      <span className="absolute -inset-1 rounded-full bg-[#FFF89A]/30 group-hover:bg-[#FFF89A]/50 animate-ping -z-10" />
+      <span className="absolute -inset-1 rounded-full bg-buendia-yellow/30 group-hover:bg-buendia-yellow/50 animate-ping -z-10" />
 
       {/* Floating icon */}
       <div className="relative">

@@ -25,7 +25,7 @@ const INITIAL_CATEGORIES: Category[] = [
     active: true,
     position: 1,
     image: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?auto=format&fit=crop&q=80&w=400',
-    icon: '✨',
+    icon: '',
     banner: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?auto=format&fit=crop&q=80&w=1200'
   },
   {
@@ -35,7 +35,7 @@ const INITIAL_CATEGORIES: Category[] = [
     active: true,
     position: 2,
     image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&q=80&w=400',
-    icon: '📅',
+    icon: '',
     banner: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&q=80&w=1200'
   },
   {
@@ -45,7 +45,7 @@ const INITIAL_CATEGORIES: Category[] = [
     active: true,
     position: 3,
     image: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&q=80&w=400',
-    icon: '💛',
+    icon: '',
     banner: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&q=80&w=1200'
   },
   {
@@ -55,7 +55,7 @@ const INITIAL_CATEGORIES: Category[] = [
     active: true,
     position: 4,
     image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=400',
-    icon: '🌸',
+    icon: '',
     banner: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&q=80&w=1200'
   }
 ];
@@ -251,26 +251,26 @@ const INITIAL_COUPONS: Coupon[] = [
 ];
 
 const INITIAL_SETTINGS: StoreSettings = {
-  logo: '🌼 Buendía - Lara Peçanha',
+  logo: 'Buendía - Lara Peçanha',
   whatsappNumber: '38999990449', // Sem símbolos para o deep-linking
   instagramHandle: 'buendia_laracanha',
   phoneNumber: '(38) 99999-0449',
   address: 'Rua das Flores, 120, Centro - Montes Claros / MG',
-  topAnnouncementText: 'Produtos Únicos & Papelaria Criativa 🌼 Use o Cupom',
+  topAnnouncementText: 'Produtos Únicos & Papelaria Criativa - Use o Cupom',
   topAnnouncementCoupon: 'BEMVINDA',
   topAnnouncementSuffix: 'para R$ 15,00 OFF!',
   colors: {
-    primary: '#0F2A4A',
-    secondary: '#FFF89A',
-    accent1: '#FFDEFA',
-    accent2: '#E0F4FF'
+    primary: '#4A6575',
+    secondary: '#FFF1C1',
+    accent1: '#FCE7F3',
+    accent2: '#D1E9F6'
   },
   homeSections: [
     { id: 'banners', title: 'Banner Rotativo', enabled: true, order: 1 },
     { id: 'categories', title: 'Categorias de Charme', enabled: true, order: 2 },
-    { id: 'novidades', title: 'Novidades da Semana 🌸', enabled: true, order: 3 },
-    { id: 'destaques', title: 'Destaques com Amor', enabled: true, order: 4 },
-    { id: 'presentes', title: 'Opções de Presentes 🎁', enabled: true, order: 5 },
+    { id: 'novidades', title: 'Novidades da Semana', enabled: true, order: 3 },
+    { id: 'destaques', title: 'Destaques', enabled: true, order: 4 },
+    { id: 'presentes', title: 'Opções de Presentes', enabled: true, order: 5 },
     { id: 'kits', title: 'Kits Especiais e Exclusivos', enabled: true, order: 6 },
     { id: 'mais_vendidos', title: 'Mais Amados (Mais Vendidos)', enabled: true, order: 7 }
   ],
@@ -446,6 +446,28 @@ export const db = {
 
     if (supabase) {
       await supabase.from('products').delete().eq('id', id);
+    }
+  },
+
+  // --- CUSTOMERS ---
+  async customerLogin(name: string, phone: string) {
+    if (!supabase) return { name, phone };
+    const cleanPhone = phone.replace(/\D/g, '');
+    const { data } = await supabase.from('customers').select('*').eq('phone', cleanPhone).single();
+    if (data) {
+      // Update name just in case they changed it
+      if (data.name !== name) {
+        await supabase.from('customers').update({ name }).eq('phone', cleanPhone);
+      }
+      return { name, phone: cleanPhone, id: data.id };
+    } else {
+      const { data: newData } = await supabase.from('customers').insert({
+        id: crypto.randomUUID(),
+        name,
+        phone: cleanPhone,
+        created_at: new Date().toISOString()
+      }).select().single();
+      return newData || { name, phone };
     }
   },
 

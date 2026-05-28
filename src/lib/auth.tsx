@@ -13,6 +13,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   loginEmailPassword: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
+  loginCustomer: (name: string, phone: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -42,6 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           phone: '',
           role: 'admin'
         });
+      } else {
+        const savedUser = localStorage.getItem('buendia_user');
+        if (savedUser) {
+           const parsed = JSON.parse(savedUser);
+           if (parsed.role !== 'admin') setUser(parsed);
+        }
       }
       setLoading(false);
     });
@@ -57,8 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         localStorage.setItem('buendia_user', JSON.stringify({ role: 'admin' }));
       } else {
-        setUser(null);
-        localStorage.removeItem('buendia_user');
+        const savedUser = localStorage.getItem('buendia_user');
+        if (savedUser) {
+           const parsed = JSON.parse(savedUser);
+           if (parsed.role === 'admin') {
+              setUser(null);
+              localStorage.removeItem('buendia_user');
+           }
+        }
       }
     });
 
@@ -72,8 +85,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
+  const loginCustomer = async (name: string, phone: string) => {
+    const { id } = await import('./db').then(m => m.db.customerLogin(name, phone));
+    const profile: UserProfile = {
+      id: id || `usr-${Math.random().toString(36).substring(2, 9)}`,
+      fullName: name,
+      phone: phone,
+      role: 'customer'
+    };
+    setUser(profile);
+    localStorage.setItem('buendia_user', JSON.stringify(profile));
+  };
+
   const logout = async () => {
-    if (supabase) {
+    if (user?.role === 'admin' && supabase) {
        await supabase.auth.signOut();
     }
     setUser(null);
@@ -86,6 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     loginEmailPassword,
+    loginCustomer,
     logout
   };
 

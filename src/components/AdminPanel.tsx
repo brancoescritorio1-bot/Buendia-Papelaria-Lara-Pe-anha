@@ -119,7 +119,7 @@ export default function AdminPanel({
 
   const [secOrder, setSecOrder] = useState(settings.homeSections);
 
-  const [topBarText, setTopBarText] = useState(settings.topAnnouncementText ?? 'Produtos Únicos & Papelaria Criativa 🌼 Use o Cupom');
+  const [topBarText, setTopBarText] = useState(settings.topAnnouncementText ?? 'Produtos Únicos & Papelaria Criativa - Use o Cupom');
   const [topBarCoupon, setTopBarCoupon] = useState(settings.topAnnouncementCoupon ?? 'BEMVINDA');
   const [topBarSuffix, setTopBarSuffix] = useState(settings.topAnnouncementSuffix ?? 'para R$ 15,00 OFF!');
 
@@ -883,6 +883,19 @@ CREATE POLICY policy_select_order_history ON public.order_history FOR SELECT USI
 CREATE POLICY policy_insert_order_history ON public.order_history FOR INSERT WITH CHECK (true);
 CREATE POLICY policy_update_order_history ON public.order_history FOR UPDATE USING (true);
 CREATE POLICY policy_delete_order_history ON public.order_history FOR DELETE USING (true);
+
+-- TABELA DE CLIENTES
+CREATE TABLE IF NOT EXISTS public.customers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT UNIQUE NOT NULL,
+    created_at TEXT NOT NULL
+);
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY policy_select_customers ON public.customers FOR SELECT USING (true);
+CREATE POLICY policy_insert_customers ON public.customers FOR INSERT WITH CHECK (true);
+CREATE POLICY policy_update_customers ON public.customers FOR UPDATE USING (true);
+CREATE POLICY policy_delete_customers ON public.customers FOR DELETE USING (true);
 `;
                       navigator.clipboard.writeText(sqlText);
                       setCopiedSql(true);
@@ -973,6 +986,13 @@ CREATE TABLE public.orders (
     status TEXT NOT NULL,
     "paymentMethod" TEXT NOT NULL,
     history JSONB DEFAULT '[]'::jsonb
+);
+
+CREATE TABLE public.customers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT UNIQUE NOT NULL,
+    created_at TEXT NOT NULL
 );`}
                   </pre>
                 </div>
@@ -1761,11 +1781,11 @@ CREATE TABLE public.orders (
                     <span className="block text-[10px] font-bold uppercase tracking-wider text-buendia-navy mb-1">Etiquetas e Posicionamento:</span>
                     
                     {[
-                      { checked: prodIsFeatured, setChecked: setProdIsFeatured, label: 'Produto Destaque da Loja 💎' },
-                      { checked: prodIsWeeklyNew, setChecked: setProdIsWeeklyNew, label: 'Novidade da Semana 🌟' },
-                      { checked: prodIsGift, setChecked: setProdIsGift, label: 'Adequado para Sugestão de Presentes 🎁' },
-                      { checked: prodIsBestSeller, setChecked: setProdIsBestSeller, label: 'Campeão de Vendas (Mais vendidos) 🔥' },
-                      { checked: prodIsKit, setChecked: setProdIsKit, label: 'Kit Especial Montado com Carinho 💝' }
+                      { checked: prodIsFeatured, setChecked: setProdIsFeatured, label: 'Produto Destaque da Loja' },
+                      { checked: prodIsWeeklyNew, setChecked: setProdIsWeeklyNew, label: 'Novidade da Semana' },
+                      { checked: prodIsGift, setChecked: setProdIsGift, label: 'Adequado para Sugestão de Presentes' },
+                      { checked: prodIsBestSeller, setChecked: setProdIsBestSeller, label: 'Campeão de Vendas (Mais vendidos)' },
+                      { checked: prodIsKit, setChecked: setProdIsKit, label: 'Kit Especial Montado' }
                     ].map((item, idx) => (
                       <label key={idx} className="flex items-center gap-2 text-xs text-buendia-navy font-semibold cursor-pointer select-none">
                         <input
@@ -2361,7 +2381,7 @@ CREATE TABLE public.orders (
                   value={topBarText}
                   onChange={(e) => setTopBarText(e.target.value)}
                   className="w-full bg-[#FCFBF7] text-xs border rounded-xl p-2.5"
-                  placeholder="ex: Produtos Únicos & Papelaria Criativa 🌼 Use o Cupom"
+                  placeholder="ex: Produtos Únicos & Papelaria Criativa - Use o Cupom"
                 />
               </div>
 
@@ -2618,27 +2638,30 @@ CREATE TABLE public.orders (
       {selectedOrder && (
         <div className="hidden print:block print-container fixed inset-0 bg-white z-50 p-8 text-black leading-relaxed font-sans text-xs">
           {/* Invoice header logo */}
-          <div className="border-b-[1.5px] border-neutral-300 pb-5 mb-5 flex justify-between items-start">
-            <div className="flex items-center gap-3">
+          <div className="border-b-[1.5px] border-neutral-300 pb-5 mb-5 flex gap-4 items-start">
+            <div className="flex-shrink-0">
               {settings?.logoImageUrl ? (
-                <img src={settings.logoImageUrl} alt="Logo" className="w-16 h-16 object-contain" />
+                <img src={settings.logoImageUrl} alt="Logo" className="w-[120px] h-[120px] object-contain" />
               ) : (
-                <div className="w-16 h-16 bg-neutral-100 flex items-center justify-center font-bold text-xs text-neutral-400">LOGO</div>
+                <div className="w-[120px] h-[120px] bg-neutral-100 flex items-center justify-center font-bold text-xs text-neutral-400">LOGO</div>
               )}
-              <div>
-                <p className="text-neutral-700 text-[10px] max-w-[220px] leading-snug font-medium font-sans">
+            </div>
+            <div className="flex-1 flex justify-between items-start">
+              <div className="pt-2">
+                <h1 className="font-sans font-black text-xl text-neutral-900 tracking-tight leading-none mb-2">Papelaria Lara Peçanha Agradece!</h1>
+                <p className="text-neutral-700 text-xs max-w-[280px] leading-relaxed font-medium font-sans">
                   {settings?.address || 'Montes Claros - MG'} <br />
                   Whats: {settings?.whatsappNumber || settings?.phoneNumber || '(38) 99999-9999'} <br />
                   Insta: @{settings?.instagramHandle || 'papelaria'}
                 </p>
               </div>
-            </div>
-            <div className="text-right">
-              <h2 className="font-sans font-extrabold text-sm text-neutral-800 tracking-wider">RECIBO DE PEDIDO</h2>
-              <span className="font-mono font-bold text-sm text-[#7E8B99]">Nº {selectedOrder.orderNumber}</span> <br />
-              <span className="text-[10px] text-[#7E8B99] font-sans">
-                Emissão: {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')} às {new Date(selectedOrder.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}
-              </span>
+              <div className="text-right pt-2">
+                <h2 className="font-sans font-extrabold text-base text-neutral-800 tracking-wider">RECIBO DE PEDIDO</h2>
+                <span className="font-mono font-bold text-base text-[#7E8B99]">Nº {selectedOrder.orderNumber}</span> <br />
+                <span className="text-[10px] text-[#7E8B99] font-sans">
+                  Emissão: {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')} às {new Date(selectedOrder.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -2737,7 +2760,7 @@ CREATE TABLE public.orders (
 
           {/* Footer message of love (thanking for preference) */}
           <div className="absolute bottom-10 inset-x-12 pt-6 text-center text-[9px] text-neutral-500 leading-relaxed font-sans">
-            <span className="font-bold text-neutral-700 uppercase tracking-wider block mb-1">Muito obrigada pela sua preferência! 🌼</span>
+            <span className="font-bold text-neutral-700 uppercase tracking-wider block mb-1">Muito obrigada pela sua preferência!</span>
             Esperamos que ame cada detalhe do seu pedido! Qualquer dúvida, estamos à disposição.
           </div>
         </div>

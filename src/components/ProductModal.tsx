@@ -120,7 +120,7 @@ export default function ProductModal({
               {/* Floating Esgotado layer */}
               {product.isOutOfStock && (
                 <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center">
-                  <span className="bg-buendia-navy text-white text-[11px] uppercase tracking-widest font-bold px-5 py-2.5 rounded-full shadow-md">
+                  <span className="bg-buendia-blue text-buendia-navy border border-buendia-navy/10 text-[11px] uppercase tracking-widest font-bold px-5 py-2.5 rounded-full shadow-md">
                     Indisponível no Momento
                   </span>
                 </div>
@@ -229,7 +229,7 @@ export default function ProductModal({
                             }}
                             className={`px-3 py-2 rounded-2xl text-xs font-semibold border transition-all ${
                               isSelected
-                                ? 'bg-buendia-navy text-white border-buendia-navy shadow-xs'
+                                ? 'bg-buendia-blue text-buendia-navy border-buendia-navy shadow-xs'
                                 : 'bg-[#FCFBF7] text-buendia-navy border-buendia-navy/10 hover:border-buendia-navy/30'
                             }`}
                           >
@@ -241,22 +241,6 @@ export default function ProductModal({
                   </div>
                 );
               })}
-
-              {/* Special Personalization notes Box (Fita cores, Letter message) */}
-              <div className="space-y-2 pt-3 border-t border-neutral-50">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-buendia-navy flex items-center justify-between">
-                  <span>Nota de Personalização ou Pedido Especial 🌻</span>
-                  <span className="text-buendia-gray text-[9px] capitalize font-medium italic">Opcional</span>
-                </label>
-                <textarea
-                  placeholder="Escreva caso queira um cartão de feliz aniversário, fita combinada de outra cor, ou orientações especiais..."
-                  rows={2}
-                  value={observation}
-                  onChange={(e) => setObservation(e.target.value)}
-                  className="w-full bg-[#FCFBF7] text-xs text-buendia-navy border border-buendia-navy/10 rounded-2xl p-3 focus:ring-2 focus:ring-buendia-blue/40 focus:outline-hidden resize-none placeholder-[#7E8B99]/60 leading-relaxed"
-                />
-              </div>
-
             </div>
 
             {/* Bottom Panel: Quantity and primary Adding core controls */}
@@ -309,7 +293,7 @@ export default function ProductModal({
                       ? 'bg-neutral-100 text-[#7E8B99] cursor-not-allowed shadow-none border'
                       : addedAnimation
                       ? 'bg-amber-100 text-amber-900 shadow-none'
-                      : 'bg-buendia-navy text-white hover:bg-opacity-95'
+                      : 'bg-buendia-blue text-buendia-navy hover:bg-opacity-95'
                   }`}
                 >
                   {addedAnimation ? (
