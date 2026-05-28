@@ -574,9 +574,9 @@ export default function ShoppingCart({
 
                 <button
                   onClick={validateAndProceed}
-                  className="w-full bg-buendia-navy text-white hover:bg-opacity-95 text-xs font-bold uppercase tracking-wider py-4 rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
+                  className="w-full bg-[#EA4C89] text-white hover:bg-[#E03A77] text-xs font-bold uppercase tracking-wider py-4 rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
                 >
-                  <span>Chamar Lara no WhatsApp</span>
+                  <span>Finalizar Compra</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
 

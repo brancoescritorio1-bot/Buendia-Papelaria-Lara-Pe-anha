@@ -543,7 +543,11 @@ export const db = {
       saveOrders(list);
 
       if (supabase) {
-        await supabase.from('orders').upsert(order);
+        try {
+          await supabase.from('orders').upsert(order);
+        } catch (e) {
+          console.warn('Supabase sync failed (offline or unconfigured), saved locally.');
+        }
       }
       return order;
     }
@@ -642,7 +646,11 @@ export const db = {
       saveOrders(list);
 
       if (supabase) {
-        await supabase.from('orders').delete().eq('id', id);
+        try {
+          await supabase.from('orders').delete().eq('id', id);
+        } catch (e) {
+          console.warn('Supabase delete failed, processed locally.');
+        }
       }
       return true;
     }

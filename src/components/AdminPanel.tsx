@@ -202,12 +202,10 @@ export default function AdminPanel({
   };
 
   const handleDeleteOrder = async (orderId: string) => {
-    if (window.confirm("Tem certeza absoluta de que deseja excluir permanentemente este pedido da loja e liberar as quantidades de retorno ao estoque?")) {
-      await db.deleteOrder(orderId);
-      setSelectedOrder(null);
-      setIsEditingOrder(false);
-      onRefreshData();
-    }
+    await db.deleteOrder(orderId);
+    setSelectedOrder(null);
+    setIsEditingOrder(false);
+    onRefreshData();
   };
 
   const handleUpdateItemQuantity = (index: number, delta: number) => {
@@ -584,7 +582,8 @@ export default function AdminPanel({
   );
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 select-none no-print">
+    <>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 select-none print:hidden">
       
       {/* Upper info ribbon with bento spacing */}
       <div className="bg-white rounded-3xl p-6 border border-buendia-navy/5 shadow-2xs mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -2467,6 +2466,7 @@ CREATE TABLE public.orders (
 
         </div>
       )}
+      </div>
 
       {/* 🧾 HIDDEN INVOICE SECTION (USED SEAMLESSLY VIA STANDARD WINDOW.PRINT IN COOPERATION WITH BROWSER INTERACTIVE PDF PROCESSORS) */}
       {selectedOrder && (
@@ -2579,6 +2579,6 @@ CREATE TABLE public.orders (
         </div>
       )}
 
-    </div>
+    </>
   );
 }

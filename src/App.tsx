@@ -298,7 +298,7 @@ function MainAppContent() {
         if (!text && !coupon) return null;
 
         return (
-          <div className="bg-buendia-navy text-white text-[10px] font-display uppercase tracking-widest py-2 text-center font-semibold select-none flex items-center justify-center gap-1.5 px-4 min-h-[30px]">
+          <div className="bg-buendia-navy text-white text-[10px] font-display uppercase tracking-widest py-2 text-center font-semibold select-none flex items-center justify-center gap-1.5 px-4 min-h-[30px] print:hidden">
             {text && <span>{text}</span>}
             {coupon && coupon.trim() !== '' && (
               <>
@@ -313,19 +313,21 @@ function MainAppContent() {
       })()}
 
       {/* Header bar */}
-      <Header
-        onOpenCart={() => setCartOpen(true)}
-        cartCount={cartTotalQuantity}
-        searchTerm={searchTerm}
-        onSearch={setSearchTerm}
-        onOpenAdmin={handleOpenAdminToggle}
-        isAdminView={isAdminView}
-        onOpenFavorites={() => setFavoritesOpen(true)}
-        favoritesCount={favorites.length}
-        products={products}
-        onSelectProduct={(p) => setSelectedProduct(p)}
-        settings={settings}
-      />
+      <div className="print:hidden">
+        <Header
+          onOpenCart={() => setCartOpen(true)}
+          cartCount={cartTotalQuantity}
+          searchTerm={searchTerm}
+          onSearch={setSearchTerm}
+          onOpenAdmin={handleOpenAdminToggle}
+          isAdminView={isAdminView}
+          onOpenFavorites={() => setFavoritesOpen(true)}
+          favoritesCount={favorites.length}
+          products={products}
+          onSelectProduct={(p) => setSelectedProduct(p)}
+          settings={settings}
+        />
+      </div>
 
       {/* CORE BODY OF APPLICATION (SWITCH ACTION SHOP vs MERCHANT DIALOG) */}
       <main className="flex-grow pb-16">
@@ -707,7 +709,7 @@ function MainAppContent() {
       </main>
 
       {/* FOOTER WIDGET */}
-      <footer className="bg-buendia-navy text-white py-12 px-4 sm:px-6 border-t-4 border-[#FFF89A] no-print">
+      <footer className="bg-buendia-navy text-white py-12 px-4 sm:px-6 border-t-4 border-[#FFF89A] print:hidden">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 text-xs items-center md:items-start">
           
           {/* Logo / Brand slogan text */}

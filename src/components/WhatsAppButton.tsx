@@ -19,7 +19,7 @@ export default function WhatsAppButton({ phoneNumber }: WhatsAppButtonProps) {
       href={wppUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-40 group flex items-center gap-2 bg-[#FCFBF7] text-buendia-navy hover:text-amber-700 p-3 sm:p-4 rounded-full shadow-lg border border-buendia-navy/10 hover:border-amber-200 transition-all hover:scale-105 select-none animate-fade-in no-print"
+      className="fixed bottom-6 right-6 z-40 group flex items-center gap-2 bg-[#FCFBF7] text-buendia-navy hover:text-amber-700 p-3 sm:p-4 rounded-full shadow-lg border border-buendia-navy/10 hover:border-amber-200 transition-all hover:scale-105 select-none animate-fade-in print:hidden"
       title="Falar com Lara no WhatsApp"
     >
       {/* Decorative pulse ring */}
