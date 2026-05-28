@@ -44,6 +44,9 @@ function MainAppContent() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | null>(null);
 
+  // Auth
+  const { user, loading: authLoading } = useAuth();
+
   // Cart operations state
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
@@ -333,16 +336,23 @@ function MainAppContent() {
       <main className="flex-grow pb-16">
         
         {isAdminView ? (
-          // Admin View Mode panel
-          <AdminPanel
-            categories={categories}
-            subcategories={subcategories}
-            products={products}
-            orders={orders}
-            coupons={coupons}
-            settings={settings}
-            onRefreshData={handleFetchAllData}
-          />
+          (!authLoading && !user) || (user && user.role !== 'admin') ? (
+            <div className="flex flex-col items-center justify-center h-screen space-y-4">
+              <h2 className="font-display font-semibold text-lg text-buendia-navy">Acesso Restrito</h2>
+              <p className="text-sm text-neutral-500">Por favor, faça login com uma conta de administrador.</p>
+              {/* Add login UI/Redirect here */}
+            </div>
+          ) : (
+            <AdminPanel
+              categories={categories}
+              subcategories={subcategories}
+              products={products}
+              orders={orders}
+              coupons={coupons}
+              settings={settings}
+              onRefreshData={handleFetchAllData}
+            />
+          )
         ) : (
           // Customer E-commerce store
           <div className="space-y-12">

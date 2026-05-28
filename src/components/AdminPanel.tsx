@@ -791,7 +791,17 @@ CREATE TABLE IF NOT EXISTS public.orders (
     total DOUBLE PRECISION NOT NULL,
     status TEXT NOT NULL,
     "paymentMethod" TEXT NOT NULL,
-    history JSONB DEFAULT '[]'::jsonb
+    history JSONB DEFAULT '[]'::jsonb,
+    "stockDeducted" BOOLEAN DEFAULT FALSE
+);
+
+-- TABELA DE HISTÓRICO DE PEDIDOS
+CREATE TABLE IF NOT EXISTS public.order_history (
+    id TEXT PRIMARY KEY,
+    "orderId" TEXT NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+    "timestamp" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "note" TEXT
 );
 
 -- ATIVAR POLITICAS RLS PARA ACESSO TOTAL PUBLICO DA LOJA
@@ -801,6 +811,7 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_history ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY policy_select_categories ON public.categories FOR SELECT USING (true);
 CREATE POLICY policy_insert_categories ON public.categories FOR INSERT WITH CHECK (true);
@@ -830,7 +841,13 @@ CREATE POLICY policy_delete_settings ON public.settings FOR DELETE USING (true);
 CREATE POLICY policy_select_orders ON public.orders FOR SELECT USING (true);
 CREATE POLICY policy_insert_orders ON public.orders FOR INSERT WITH CHECK (true);
 CREATE POLICY policy_update_orders ON public.orders FOR UPDATE USING (true);
-CREATE POLICY policy_delete_orders ON public.orders FOR DELETE USING (true);`;
+CREATE POLICY policy_delete_orders ON public.orders FOR DELETE USING (true);
+
+CREATE POLICY policy_select_order_history ON public.order_history FOR SELECT USING (true);
+CREATE POLICY policy_insert_order_history ON public.order_history FOR INSERT WITH CHECK (true);
+CREATE POLICY policy_update_order_history ON public.order_history FOR UPDATE USING (true);
+CREATE POLICY policy_delete_order_history ON public.order_history FOR DELETE USING (true);
+`;
                       navigator.clipboard.writeText(sqlText);
                       setCopiedSql(true);
                       setTimeout(() => setCopiedSql(false), 2000);
