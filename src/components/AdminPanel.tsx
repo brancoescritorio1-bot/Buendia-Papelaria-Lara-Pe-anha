@@ -117,9 +117,9 @@ export default function AdminPanel({
 
   const [secOrder, setSecOrder] = useState(settings.homeSections);
 
-  const [topBarText, setTopBarText] = useState(settings.topAnnouncementText || 'Produtos Únicos & Papelaria Criativa 🌼 Use o Cupom');
-  const [topBarCoupon, setTopBarCoupon] = useState(settings.topAnnouncementCoupon || 'BEMVINDA');
-  const [topBarSuffix, setTopBarSuffix] = useState(settings.topAnnouncementSuffix || 'para R$ 15,00 OFF!');
+  const [topBarText, setTopBarText] = useState(settings.topAnnouncementText ?? 'Produtos Únicos & Papelaria Criativa 🌼 Use o Cupom');
+  const [topBarCoupon, setTopBarCoupon] = useState(settings.topAnnouncementCoupon ?? 'BEMVINDA');
+  const [topBarSuffix, setTopBarSuffix] = useState(settings.topAnnouncementSuffix ?? 'para R$ 15,00 OFF!');
 
   const [newSectionTitle, setNewSectionTitle] = useState('');
   const [newSectionSourceType, setNewSectionSourceType] = useState('novidades');

@@ -290,13 +290,27 @@ function MainAppContent() {
     <div className="min-h-screen flex flex-col bg-white">
       
       {/* Upper promo sticker line */}
-      <div className="bg-buendia-navy text-white text-[10px] font-display uppercase tracking-widest py-2 text-center font-semibold select-none flex items-center justify-center gap-1">
-        <span>{settings.topAnnouncementText || 'Produtos Únicos & Papelaria Criativa 🌼 Use o Cupom'}</span>
-        <strong className="bg-[#FFF89A] text-buendia-navy px-1.5 py-0.5 rounded-sm">
-          {settings.topAnnouncementCoupon || 'BEMVINDA'}
-        </strong>
-        <span>{settings.topAnnouncementSuffix || 'para R$ 15,00 OFF!'}</span>
-      </div>
+      {(() => {
+        const text = settings.topAnnouncementText ?? 'Produtos Únicos & Papelaria Criativa 🌼 Use o Cupom';
+        const coupon = settings.topAnnouncementCoupon ?? 'BEMVINDA';
+        const suffix = settings.topAnnouncementSuffix ?? 'para R$ 15,00 OFF!';
+        
+        if (!text && !coupon) return null;
+
+        return (
+          <div className="bg-buendia-navy text-white text-[10px] font-display uppercase tracking-widest py-2 text-center font-semibold select-none flex items-center justify-center gap-1.5 px-4 min-h-[30px]">
+            {text && <span>{text}</span>}
+            {coupon && coupon.trim() !== '' && (
+              <>
+                <strong className="bg-[#FFF89A] text-buendia-navy px-1.5 py-0.5 rounded-sm font-bold">
+                  {coupon}
+                </strong>
+                {suffix && suffix.trim() !== '' && <span>{suffix}</span>}
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Header bar */}
       <Header
