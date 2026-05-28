@@ -5,16 +5,15 @@
 
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { UserProfile } from '../types';
+import { supabase } from './db';
 
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  loginGoogle: () => Promise<void>;
-  signUpWithPhone: (fullName: string, phone: string, email?: string) => Promise<void>;
+  loginEmailPassword: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  isClerkRealMode: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,64 +22,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if Clerk publishable key exists
-  const isClerkRealMode = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
   useEffect(() => {
-    // Load persisted user if any
-    const savedUser = localStorage.getItem('buendia_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch {
-        setUser(null);
-      }
-    } else {
-      // Auto-populate guest user to demonstrate checkout experience immediately if desired,
-      // or leave as guest. Let's leave as guest initially so they can interact with the Login button.
+    // Determine user session from Supabase
+    if (!supabase) {
+      // Offline fallback
+      const savedUser = localStorage.getItem('buendia_user');
+      if (savedUser) setUser(JSON.parse(savedUser));
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        // If authenticated via supabase, treat as admin for this app
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          fullName: 'Administrador Supabase',
+          phone: '',
+          role: 'admin'
+        });
+      }
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+          fullName: 'Administrador Supabase',
+          phone: '',
+          role: 'admin'
+        });
+        localStorage.setItem('buendia_user', JSON.stringify({ role: 'admin' }));
+      } else {
+        setUser(null);
+        localStorage.removeItem('buendia_user');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const loginGoogle = async () => {
-    setLoading(true);
-    // Simulating immediate Clerk-style Google OAuth redirection & login
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    
-    // Default logged in profile
-    const profile: UserProfile = {
-      id: `usr-${Math.random().toString(36).substring(2, 9)}`,
-      fullName: 'Ana Carolina Mendonça 🌼',
-      phone: '(38) 98877-6655',
-      email: 'carol.mendonca@gmail.com',
-      role: 'customer'
-    };
-    
-    setUser(profile);
-    localStorage.setItem('buendia_user', JSON.stringify(profile));
-    setLoading(false);
+  const loginEmailPassword = async (email: string, pass: string) => {
+    if (!supabase) return { success: false, error: 'Supabase não configurado.' };
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
   };
 
-  const signUpWithPhone = async (fullName: string, phone: string, email?: string) => {
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    // Simple role determination (if user sets "admin" secret suffix or via settings)
-    const isSpecialAdmin = fullName.toLowerCase().includes('admin') || fullName.toLowerCase().includes('lara');
-    const profile: UserProfile = {
-      id: `usr-${Math.random().toString(36).substring(2, 9)}`,
-      fullName,
-      phone,
-      email,
-      role: isSpecialAdmin ? 'admin' : 'customer'
-    };
-
-    setUser(profile);
-    localStorage.setItem('buendia_user', JSON.stringify(profile));
-    setLoading(false);
-  };
-
-  const logout = () => {
+  const logout = async () => {
+    if (supabase) {
+       await supabase.auth.signOut();
+    }
     setUser(null);
     localStorage.removeItem('buendia_user');
   };
@@ -89,11 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     loading,
     isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin' || user?.fullName === 'Lara Peçanha (Admin)', // Admin designation
-    loginGoogle,
-    signUpWithPhone,
-    logout,
-    isClerkRealMode
+    isAdmin: user?.role === 'admin',
+    loginEmailPassword,
+    logout
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

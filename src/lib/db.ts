@@ -451,11 +451,50 @@ export const db = {
 
   // --- ORDERS ---
   async getOrders(): Promise<Order[]> {
+    let list: Order[] = [];
     if (supabase) {
       const { data, error } = await supabase.from('orders').select('*').order('createdAt', { ascending: false });
-      if (!error && data) return data;
+      if (!error && data) list = data as Order[];
+      else list = loadOrders();
+    } else {
+      list = loadOrders();
     }
-    return loadOrders().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Auto-expire "Aguardando WhatsApp" after 24h
+    let updatedAny = false;
+    const now = new Date().getTime();
+    for (let i = 0; i < list.length; i++) {
+      const order = list[i];
+      if (order.status === 'Aguardando WhatsApp') {
+        const orderTime = new Date(order.createdAt).getTime();
+        const hrs24 = 24 * 60 * 60 * 1000;
+        if (now - orderTime > hrs24) {
+          order.status = 'Cancelado';
+          const historyEntry = {
+            id: `hist-${Math.random().toString(36).substring(2, 9)}`,
+            orderId: order.id,
+            action: 'Status alterado para Cancelado automáticamente (expirado após 24h)',
+            timestamp: new Date().toISOString(),
+            note: 'Pedido expirado.',
+            itemChanged: 'status'
+          };
+          order.history = order.history || [];
+          order.history.push(historyEntry);
+          updatedAny = true;
+          
+          if (supabase) {
+            supabase.from('orders').upsert(order).then();
+            supabase.from('order_history').insert(historyEntry).then();
+          }
+        }
+      }
+    }
+    
+    if (updatedAny) {
+      saveOrders(list);
+    }
+    
+    return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
   async createOrder(order: Omit<Order, 'orderNumber'>): Promise<Order> {
@@ -489,14 +528,20 @@ export const db = {
       const wasDeducted = !!order.stockDeducted;
       
       order.status = status;
-      order.history.push({
-        status,
+      const historyEntry = {
+        id: `hist-${Math.random().toString(36).substring(2, 9)}`,
+        orderId: id,
+        action: `Status alterado para ${status}`,
         timestamp: new Date().toISOString(),
-        note
-      });
+        note: note || `De ${previousStatus} para ${status}`,
+        itemChanged: 'status'
+      };
+      
+      order.history = order.history || [];
+      order.history.push(historyEntry);
 
       // Statuses that are considered "finalized / confirmed" and deduct from official stock
-      const isFinalStatus = ['separado', 'enviado', 'entregue'].includes(status);
+      const isFinalStatus = ['Em preparação', 'Em transporte', 'Entregue'].includes(status);
       
       // If we are now finalized and weren't deducted before -> Deduct from official stock!
       if (isFinalStatus && !wasDeducted) {
@@ -518,8 +563,8 @@ export const db = {
         }
       }
       
-      // If we go to non-finalized states (like cancelado or pendente) but were deducted before -> Return to stock!
-      const isReturnStatus = ['cancelado', 'pendente', 'aguardando_whatsapp'].includes(status);
+      // If we go to non-finalized states (like Cancelado) but were deducted before -> Return to stock!
+      const isReturnStatus = ['Cancelado', 'Aguardando WhatsApp'].includes(status);
       if (isReturnStatus && wasDeducted) {
         const products = loadProducts();
         for (const item of order.items) {
@@ -545,6 +590,8 @@ export const db = {
       if (supabase) {
         try {
           await supabase.from('orders').upsert(order);
+          // Explicitly insert into order_history table as requested
+          await supabase.from('order_history').insert(historyEntry);
         } catch (e) {
           console.warn('Supabase sync failed (offline or unconfigured), saved locally.');
         }
@@ -611,6 +658,17 @@ export const db = {
 
       if (supabase) {
         await supabase.from('orders').upsert(updatedOrder);
+        // Sync any history elements that might not be in order_history (naive approach insert latest one)
+        if (updatedOrder.history && updatedOrder.history.length > 0) {
+          const latestHistory = updatedOrder.history[updatedOrder.history.length - 1];
+          if (latestHistory && latestHistory.id) {
+            try {
+              await supabase.from('order_history').insert(latestHistory);
+            } catch(e) {
+              // ignore duplicate key error
+            }
+          }
+        }
       }
       return updatedOrder;
     }

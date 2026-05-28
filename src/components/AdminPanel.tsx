@@ -49,6 +49,8 @@ export default function AdminPanel({
   const [editCustomerPhone, setEditCustomerPhone] = useState('');
   const [editPaymentMethod, setEditPaymentMethod] = useState<'Pix' | 'cartão' | 'dinheiro' | 'transferência' | 'pendente'>('Pix');
   const [editOrderItems, setEditOrderItems] = useState<OrderItem[]>([]);
+  const [editCouponCode, setEditCouponCode] = useState<string>('');
+  const [editCouponDiscount, setEditCouponDiscount] = useState<number>(0);
   const [editSearchProduct, setEditSearchProduct] = useState('');
   const [showAddProductSelector, setShowAddProductSelector] = useState(false);
   const [selectedProductToAdd, setSelectedProductToAdd] = useState<Product | null>(null);
@@ -154,6 +156,8 @@ export default function AdminPanel({
     setEditCustomerPhone(selectedOrder.customerPhone);
     setEditPaymentMethod(selectedOrder.paymentMethod);
     setEditOrderItems([...selectedOrder.items]);
+    setEditCouponCode(selectedOrder.couponCode || '');
+    setEditCouponDiscount(selectedOrder.couponDiscount || 0);
     setEditSearchProduct('');
     setShowAddProductSelector(false);
     setSelectedProductToAdd(null);
@@ -174,7 +178,29 @@ export default function AdminPanel({
     }
 
     // Recalculate total
-    const newTotal = editOrderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const newSubtotal = editOrderItems.reduce((sum, item) => {
+      const price = item.price - (item.discount || 0);
+      return sum + (price * item.quantity);
+    }, 0);
+    
+    // Evaluate coupon if re-applying
+    let finalDiscount = editCouponDiscount;
+    if (editCouponCode) {
+      const c = coupons.find(cp => cp.code === editCouponCode && cp.active);
+      if (c && newSubtotal >= c.minPurchase) {
+        if (c.type === 'percent') {
+          finalDiscount = newSubtotal * (c.value / 100);
+        } else {
+          finalDiscount = c.value;
+        }
+      } else {
+        finalDiscount = 0; // Invalidated coupon
+      }
+    } else {
+      finalDiscount = 0;
+    }
+    
+    const newTotal = newSubtotal - finalDiscount;
 
     const updated: Order = {
       ...selectedOrder,
@@ -182,13 +208,19 @@ export default function AdminPanel({
       customerPhone: editCustomerPhone,
       paymentMethod: editPaymentMethod,
       items: editOrderItems,
-      total: newTotal,
+      subtotal: newSubtotal,
+      couponCode: editCouponCode || undefined,
+      couponDiscount: finalDiscount,
+      total: Math.max(0, newTotal),
       history: [
         ...selectedOrder.history,
         {
-          status: selectedOrder.status,
+          id: `hist-${Math.random().toString(36).substring(2, 9)}`,
+          orderId: selectedOrder.id,
+          action: 'Edição completa do pedido',
           timestamp: new Date().toISOString(),
-          note: 'Pedido alterado manualmente no painel administrativo'
+          note: 'Pedido alterado manualmente no painel administrativo',
+          itemChanged: 'Múltiplos campos'
         }
       ]
     };
@@ -788,6 +820,9 @@ CREATE TABLE IF NOT EXISTS public.orders (
     "customerName" TEXT NOT NULL,
     "customerPhone" TEXT NOT NULL,
     items JSONB DEFAULT '[]'::jsonb,
+    subtotal DOUBLE PRECISION DEFAULT 0,
+    "couponCode" TEXT,
+    "couponDiscount" DOUBLE PRECISION DEFAULT 0,
     total DOUBLE PRECISION NOT NULL,
     status TEXT NOT NULL,
     "paymentMethod" TEXT NOT NULL,
@@ -801,6 +836,7 @@ CREATE TABLE IF NOT EXISTS public.order_history (
     "orderId" TEXT NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
     "timestamp" TEXT NOT NULL,
     "action" TEXT NOT NULL,
+    "itemChanged" TEXT,
     "note" TEXT
 );
 
@@ -986,7 +1022,7 @@ CREATE TABLE public.orders (
             
             {/* Status filtering selection row */}
             <div className="flex flex-wrap gap-2">
-              {['todos', 'pendente', 'aguardando_whatsapp', 'separado', 'enviado', 'entregue', 'cancelado'].map((status) => (
+              {['todos', 'Aguardando WhatsApp', 'Em preparação', 'Em transporte', 'Entregue', 'Cancelado', 'Fechado'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setOrderStatusFilter(status)}
@@ -996,7 +1032,7 @@ CREATE TABLE public.orders (
                       : 'bg-white border text-buendia-navy border-buendia-navy/5 hover:bg-[#FCFBF7]'
                   }`}
                 >
-                  {status === 'todos' ? 'Ver Todos' : status.replace('_', ' ')}
+                  {status === 'todos' ? 'Ver Todos' : status}
                 </button>
               ))}
             </div>
@@ -1012,12 +1048,12 @@ CREATE TABLE public.orders (
                   {filteredOrders.map((order) => {
                     const isSelected = selectedOrder?.id === order.id;
                     const statusColorMap: Record<OrderStatus, string> = {
-                      pendente: 'bg-[#FCFBF7] text-[#7E8B99] border-neutral-300',
-                      aguardando_whatsapp: 'bg-amber-50 text-amber-900 border-amber-200',
-                      separado: 'bg-sky-50 text-sky-800 border-sky-100',
-                      enviado: 'bg-blue-50 text-blue-800 border-blue-200',
-                      entregue: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-                      cancelado: 'bg-rose-50 text-rose-800 border-rose-200'
+                      'Aguardando WhatsApp': 'bg-amber-50 text-amber-900 border-amber-200',
+                      'Em preparação': 'bg-sky-50 text-sky-800 border-sky-100',
+                      'Em transporte': 'bg-blue-50 text-blue-800 border-blue-200',
+                      'Entregue': 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                      'Cancelado': 'bg-rose-50 text-rose-800 border-rose-200',
+                      'Fechado': 'bg-neutral-100 text-neutral-800 border-neutral-300'
                     };
 
                     return (
@@ -1032,7 +1068,7 @@ CREATE TABLE public.orders (
                           <div className="flex items-center gap-2">
                             <span className="font-display font-semibold text-sm text-buendia-navy">{order.orderNumber}</span>
                             <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full border ${statusColorMap[order.status]}`}>
-                              {order.status.replace('_', ' ')}
+                              {order.status}
                             </span>
                           </div>
                           
@@ -1250,8 +1286,8 @@ CREATE TABLE public.orders (
                         <p className="text-center text-[#7E8B99] py-4 text-xs">Insira pelo menos um produto no pedido acima</p>
                       ) : (
                         editOrderItems.map((item, idx) => (
-                          <div key={idx} className="flex flex-col gap-1.5 py-2 border-b border-dashed border-gray-100 last:border-0 text-xs">
-                            <div className="flex justify-between font-semibold">
+                          <div key={idx} className="flex flex-col gap-2 py-3 border-b border-dashed border-gray-200 last:border-0 text-xs">
+                            <div className="flex justify-between font-bold text-buendia-navy">
                               <span>
                                 {item.productName}
                                 {(item.selectedColor || item.selectedSize) && (
@@ -1260,46 +1296,112 @@ CREATE TABLE public.orders (
                                   </span>
                                 )}
                               </span>
-                              <span className="text-[#7E8B99]">R$ {(item.price * item.quantity).toFixed(2)}</span>
+                              <span className="text-buendia-navy font-mono">
+                                R$ {((item.price - (item.discount || 0)) * item.quantity).toFixed(2)}
+                              </span>
                             </div>
 
-                            <div className="flex justify-between items-center text-xs">
-                              {/* Quantity manipulators */}
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateItemQuantity(idx, -1)}
-                                  className="w-6 h-6 rounded-full bg-white border hover:bg-neutral-100 flex items-center justify-center font-bold text-buendia-navy text-xs cursor-pointer"
-                                >
-                                  -
-                                </button>
-                                <span className="font-bold font-mono text-xs w-6 text-center">{item.quantity}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateItemQuantity(idx, 1)}
-                                  className="w-6 h-6 rounded-full bg-white border hover:bg-neutral-100 flex items-center justify-center font-bold text-buendia-navy text-xs cursor-pointer"
-                                >
-                                  +
-                                </button>
+                            <div className="grid grid-cols-2 gap-2 mt-1">
+                              <div>
+                                <label className="text-[9px] uppercase font-bold text-[#7E8B99] mb-0.5 block">Qtd</label>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateItemQuantity(idx, -1)}
+                                    className="w-6 h-6 rounded bg-white border hover:bg-neutral-100 flex items-center justify-center font-bold text-buendia-navy cursor-pointer"
+                                  >-</button>
+                                  <span className="font-bold font-mono text-xs w-6 text-center">{item.quantity}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateItemQuantity(idx, 1)}
+                                    className="w-6 h-6 rounded bg-white border hover:bg-neutral-100 flex items-center justify-center font-bold text-buendia-navy cursor-pointer"
+                                  >+</button>
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <label className="text-[9px] uppercase font-bold text-[#7E8B99] mb-0.5 block">Unitário (R$)</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={item.price}
+                                  onChange={e => {
+                                    const next = [...editOrderItems];
+                                    next[idx].price = parseFloat(e.target.value) || 0;
+                                    setEditOrderItems(next);
+                                  }}
+                                  className="w-full bg-white text-xs border rounded-lg p-1.5 focus:outline-hidden"
+                                />
                               </div>
 
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveOrderItem(idx)}
-                                className="text-[10px] text-rose-600 hover:underline font-bold cursor-pointer"
-                              >
-                                Remover Item
-                              </button>
+                              <div>
+                                <label className="text-[9px] uppercase font-bold text-[#7E8B99] mb-0.5 block">Desconto Un. (R$)</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={item.discount || 0}
+                                  onChange={e => {
+                                    const next = [...editOrderItems];
+                                    next[idx].discount = parseFloat(e.target.value) || 0;
+                                    setEditOrderItems(next);
+                                  }}
+                                  className="w-full bg-white text-xs border rounded-lg p-1.5 focus:outline-hidden"
+                                />
+                              </div>
+
+                              <div className="flex flex-col justify-end items-end pb-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveOrderItem(idx)}
+                                  className="text-[10px] text-rose-600 hover:underline font-bold cursor-pointer"
+                                >Remover</button>
+                              </div>
+                            </div>
+                            
+                            {/* Observação item */}
+                            <div className="mt-0.5">
+                              <label className="text-[9px] uppercase font-bold text-[#7E8B99] mb-0.5 block">Observação (Opcional)</label>
+                              <input
+                                type="text"
+                                value={item.observation || ''}
+                                onChange={e => {
+                                  const next = [...editOrderItems];
+                                  next[idx].observation = e.target.value;
+                                  setEditOrderItems(next);
+                                }}
+                                placeholder="Note algo sobre a este item..."
+                                className="w-full bg-white text-xs border border-amber-200/50 rounded-lg p-1.5 focus:outline-hidden"
+                              />
                             </div>
                           </div>
                         ))
                       )}
 
-                      {/* Display new reactive totals */}
-                      <div className="flex justify-between pt-2 border-t text-xs font-bold text-buendia-navy">
-                        <span>Total Calculado:</span>
-                        <span>R$ {editOrderItems.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2)}</span>
-                      </div>
+                      {/* Geral Totals and edit coupons */}
+                      {editOrderItems.length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-buendia-navy/10 space-y-3 font-sans">
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                               <label className="block text-[9px] font-bold uppercase text-buendia-navy mb-1">Cupom Aplicado</label>
+                               <input type="text" value={editCouponCode} onChange={e => setEditCouponCode(e.target.value)} placeholder="Ex: BEMVINDA" className="w-full bg-white text-xs text-buendia-navy border rounded-xl p-2.5 focus:outline-hidden uppercase" />
+                            </div>
+                            <div>
+                               <label className="block text-[9px] font-bold uppercase text-buendia-navy mb-1">Desconto Fixo Especial (R$)</label>
+                               <input type="number" step="0.01" min="0" value={editCouponDiscount} onChange={e => setEditCouponDiscount(parseFloat(e.target.value) || 0)} className="w-full bg-white text-xs text-buendia-navy border rounded-xl p-2.5 focus:outline-hidden" />
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[10px] font-bold text-[#7E8B99] block mb-1 uppercase tracking-wider">Novo Total Estimado</span>
+                            <span className="text-lg font-bold text-buendia-navy bg-[#D1E9F6] px-3 py-1 rounded-xl">
+                              R$ {Math.max(0, editOrderItems.reduce((acc, item) => acc + ((item.price - (item.discount || 0)) * item.quantity), 0) - editCouponDiscount).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1325,13 +1427,15 @@ CREATE TABLE public.orders (
                   <div className="flex items-center justify-between border-b pb-4">
                     <h3 className="font-display font-bold text-sm text-buendia-navy">Detalhes: {selectedOrder.orderNumber}</h3>
                     <div className="flex gap-1.5">
-                      <button
-                        onClick={startEditingOrder}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-[#FCFBF7] hover:bg-neutral-100 text-buendia-navy rounded-xl text-[10px] font-extrabold border cursor-pointer"
-                        title="Alterar dados e itens do pedido"
-                      >
-                        <Edit className="h-3.5 w-3.5 text-[#7E8B99]" /> Alterar
-                      </button>
+                      {!['Entregue', 'Fechado'].includes(selectedOrder.status) && (
+                        <button
+                          onClick={startEditingOrder}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-[#FCFBF7] hover:bg-neutral-100 text-buendia-navy rounded-xl text-[10px] font-extrabold border cursor-pointer"
+                          title="Alterar dados e itens do pedido"
+                        >
+                          <Edit className="h-3.5 w-3.5 text-[#7E8B99]" /> Alterar
+                        </button>
+                      )}
                       <button
                         onClick={triggerBrowserInvoicePrint}
                         className="flex items-center gap-1 px-3 py-1.5 bg-[#FCFBF7] hover:bg-neutral-100 text-buendia-navy rounded-xl text-[10px] font-bold border cursor-pointer"
@@ -1390,36 +1494,45 @@ CREATE TABLE public.orders (
                     <span className="text-[10px] font-bold uppercase tracking-wider text-buendia-navy block">Alterar Status do Pedido:</span>
                     
                     {/* Status buttons stack */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { s: 'separado', label: 'Separado' },
-                        { s: 'enviado', label: 'Enviado' },
-                        { s: 'entregue', label: 'Entregue' },
-                        { s: 'cancelado', label: 'Cancelar' }
-                      ].map((statusObj) => (
-                        <button
-                          key={statusObj.s}
-                          onClick={() => handleUpdateStatus(selectedOrder.id, statusObj.s as OrderStatus)}
-                          className={`py-2 px-3 text-[10px] font-extrabold text-center rounded-xl border transition-all cursor-pointer ${
-                            selectedOrder.status === statusObj.s
-                              ? 'bg-buendia-navy text-white border-buendia-navy'
-                              : 'bg-white border-neutral-200 hover:border-neutral-300 text-buendia-navy'
-                          }`}
-                        >
-                          {statusObj.label}
-                        </button>
-                      ))}
-                    </div>
+                    {['Entregue', 'Fechado'].includes(selectedOrder.status) ? (
+                      <div className="bg-amber-50 text-amber-900 border border-amber-200 rounded-xl p-3 text-xs font-bold flex items-center justify-center gap-2">
+                        🔒 Pedido bloqueado Permanentemente (Finalizado)
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { s: 'Em preparação', label: 'Em Preparação' },
+                            { s: 'Em transporte', label: 'Em Transporte' },
+                            { s: 'Entregue', label: 'Entregue' },
+                            { s: 'Fechado', label: 'Fechar' },
+                            { s: 'Cancelado', label: 'Cancelar' }
+                          ].map((statusObj) => (
+                            <button
+                              key={statusObj.s}
+                              onClick={() => handleUpdateStatus(selectedOrder.id, statusObj.s as OrderStatus)}
+                              className={`py-2 px-3 text-[10px] font-extrabold text-center rounded-xl border transition-all cursor-pointer ${
+                                selectedOrder.status === statusObj.s
+                                  ? 'bg-buendia-navy text-white border-buendia-navy'
+                                  : 'bg-white border-neutral-200 hover:border-neutral-300 text-buendia-navy'
+                              }`}
+                            >
+                              {statusObj.label}
+                            </button>
+                          ))}
+                        </div>
 
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Nota opcional do histórico (ex: Rastreio)..."
-                        value={statusUpdateNote}
-                        onChange={(e) => setStatusUpdateNote(e.target.value)}
-                        className="w-full bg-[#FCFBF7] text-xs text-buendia-navy border border-buendia-navy/10 rounded-xl p-2.5 focus:outline-hidden"
-                      />
-                    </div>
+                        <div>
+                          <input
+                            type="text"
+                            placeholder="Nota opcional do histórico (ex: Rastreio)..."
+                            value={statusUpdateNote}
+                            onChange={(e) => setStatusUpdateNote(e.target.value)}
+                            className="w-full bg-[#FCFBF7] text-xs text-buendia-navy border border-buendia-navy/10 rounded-xl p-2.5 focus:outline-hidden"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Audit trail sequence logs */}
@@ -1429,22 +1542,38 @@ CREATE TABLE public.orders (
                       {selectedOrder.history.map((hist, index) => (
                         <div key={index} className="relative text-[10px] leading-relaxed">
                           <span className="absolute -left-5 top-1 h-2 w-2 rounded-full bg-buendia-navy inline-block" />
-                          <span className="font-bold text-buendia-navy block capitalize">{hist.status.replace('_', ' ')}</span>
+                          <span className="font-bold text-buendia-navy block truncate" title={hist.action}>{hist.action}</span>
                           <span className="text-buendia-gray block">{new Date(hist.timestamp).toLocaleDateString('pt-BR')} - {new Date(hist.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                          {hist.note && <span className="font-semibold block text-amber-700 font-sans">Nota: _"{hist.note}"_</span>}
+                          {hist.itemChanged && <span className="font-semibold block text-blue-700 font-sans">Mudança relacionada a: {hist.itemChanged}</span>}
+                          {hist.note && <span className="font-semibold block text-amber-700 font-sans">Nota: "{hist.note}"</span>}
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* Danger Zone: Exclusive Order Deletion */}
-                  <div className="pt-4 border-t flex justify-end">
+                  <div className="pt-4 border-t flex justify-between items-center">
+                    {!['Entregue', 'Fechado'].includes(selectedOrder.status) ? (
+                       <button
+                         type="button"
+                         onClick={startEditingOrder}
+                         className="flex items-center gap-1.5 px-3 py-1.5 bg-buendia-navy text-white text-[10px] font-bold rounded-xl cursor-pointer"
+                       >
+                         <Edit className="h-3.5 w-3.5" /> Editar Pedido
+                       </button>
+                    ) : (
+                       <div />
+                    )}
                     <button
                       type="button"
-                      onClick={() => handleDeleteOrder(selectedOrder.id)}
+                      onClick={() => {
+                        if (confirm(`Deseja mesmo EXCLUIR PERMANENTEMENTE o pedido ${selectedOrder.orderNumber}? Essa ação apagará o pedido, itens e histórico do banco de dados e não tem volta.`)) {
+                          handleDeleteOrder(selectedOrder.id);
+                        }
+                      }}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-rose-600 hover:text-white hover:bg-rose-600 rounded-xl text-[10px] font-bold border border-rose-200 transition-all cursor-pointer"
                     >
-                      <Trash2 className="h-3.5 w-3.5" /> Excluir Pedido Permanentemente
+                      <Trash2 className="h-3.5 w-3.5" /> Excluir Permanentemente
                     </button>
                   </div>
 
@@ -2489,109 +2618,127 @@ CREATE TABLE public.orders (
       {selectedOrder && (
         <div className="hidden print:block print-container fixed inset-0 bg-white z-50 p-8 text-black leading-relaxed font-sans text-xs">
           {/* Invoice header logo */}
-          <div className="border-b-2 border-neutral-300 pb-6 mb-6 flex justify-between items-start">
-            <div className="flex items-center gap-4">
+          <div className="border-b-[1.5px] border-neutral-300 pb-5 mb-5 flex justify-between items-start">
+            <div className="flex items-center gap-3">
               {settings?.logoImageUrl ? (
-                <img src={settings.logoImageUrl} alt="Logo" className="w-16 h-16 object-contain rounded-xl border p-1 bg-white" />
+                <img src={settings.logoImageUrl} alt="Logo" className="w-16 h-16 object-contain" />
               ) : (
-                <div className="w-16 h-16 rounded-xl border p-1 bg-neutral-50 flex items-center justify-center font-bold text-lg text-buendia-navy">🌼</div>
+                <div className="w-16 h-16 bg-neutral-100 flex items-center justify-center font-bold text-xs text-neutral-400">LOGO</div>
               )}
               <div>
-                <h1 className="font-sans font-black text-2xl text-[#0F2A4A] tracking-tight">🌼 {settings?.logo || 'Papelaria Lara Peçanha'}</h1>
-                <p className="text-neutral-600 text-[10px] max-w-sm mt-1 leading-normal font-sans">
-                  {settings?.address || 'Montes Claros - MG - Papelaria Criativa & Presentes'} <br />
-                  WhatsApp: {settings?.whatsappNumber || settings?.phoneNumber || '(38) 99999-9999'} | Instagram: @{settings?.instagramHandle || 'papelaria_larapesanha'}
+                <p className="text-neutral-700 text-[10px] max-w-[220px] leading-snug font-medium font-sans">
+                  {settings?.address || 'Montes Claros - MG'} <br />
+                  Whats: {settings?.whatsappNumber || settings?.phoneNumber || '(38) 99999-9999'} <br />
+                  Insta: @{settings?.instagramHandle || 'papelaria'}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <h2 className="font-sans font-extrabold text-sm text-neutral-800 tracking-wider">ORÇAMENTO / RECIBO DE PEDIDO</h2>
-              <span className="font-mono font-bold text-sm text-[#7E8B99]">Nº do Pedido: {selectedOrder.orderNumber}</span> <br />
-              <span className="text-[10px] text-[#7E8B99] font-sans">Emissão: {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')} às {new Date(selectedOrder.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</span>
+              <h2 className="font-sans font-extrabold text-sm text-neutral-800 tracking-wider">RECIBO DE PEDIDO</h2>
+              <span className="font-mono font-bold text-sm text-[#7E8B99]">Nº {selectedOrder.orderNumber}</span> <br />
+              <span className="text-[10px] text-[#7E8B99] font-sans">
+                Emissão: {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')} às {new Date(selectedOrder.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}
+              </span>
             </div>
           </div>
 
           {/* Client summary */}
-          <div className="grid grid-cols-2 gap-8 bg-neutral-50 p-5 rounded-2xl border mb-6 text-neutral-800 font-sans">
+          <div className="grid grid-cols-2 gap-8 bg-neutral-50/50 p-4 rounded-xl border border-neutral-200 mb-5 text-neutral-800 font-sans">
             <div>
               <span className="text-[9px] uppercase tracking-wider text-[#7E8B99] block font-bold mb-1">DADOS DA CLIENTE</span>
-              <div className="font-extrabold text-neutral-900 text-sm">{selectedOrder.customerName}</div>
-              <div className="text-[10px] mt-1">Celular/WhatsApp: {selectedOrder.customerPhone || 'Não informado'}</div>
+              <div className="font-extrabold text-neutral-900 text-[13px]">{selectedOrder.customerName}</div>
+              <div className="text-[10px] mt-1 font-medium flex items-center gap-1">
+                 <span className="text-neutral-500">Contato:</span> {selectedOrder.customerPhone || 'Não informado'}
+              </div>
             </div>
             <div>
               <span className="text-[9px] uppercase tracking-wider text-[#7E8B99] block font-bold mb-1">CONDIÇÕES DA COMPRA</span>
-              <div className="text-[10px] mt-1">Forma de Pagamento: <strong className="font-extrabold underline capitalize">{selectedOrder.paymentMethod}</strong></div>
-              <div className="text-[10px]">Data: {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')}</div>
-              <div className="text-[10px]">Status Atual: <span className="font-bold px-1.5 py-0.5 rounded-md bg-neutral-200 capitalize text-neutral-800 text-[9px]">{selectedOrder.status.replace('_', ' ')}</span></div>
+              <div className="text-[10px] mt-1 font-medium">Pagamento: <strong className="font-extrabold capitalize text-neutral-900">{selectedOrder.paymentMethod}</strong></div>
+              <div className="text-[10px] mt-0.5">Status: <span className="font-bold uppercase text-neutral-700 text-[9px]">{selectedOrder.status}</span></div>
             </div>
           </div>
 
           {/* Description Box table (Styled like a clean estimate box) */}
-          <div className="border border-neutral-200 rounded-2xl overflow-hidden mb-6">
+          <div className="border border-neutral-200 rounded-xl overflow-hidden mb-5">
             <table className="w-full text-left border-collapse text-neutral-800 font-sans">
               <thead>
-                <tr className="bg-neutral-100 border-b-2 border-neutral-300 text-[#7E8B99] uppercase text-[9px] tracking-wider font-bold">
-                  <th className="py-3 px-4 font-bold">Mimo / Item Descrição</th>
-                  <th className="py-3 px-4 text-center font-bold">Quant.</th>
-                  <th className="py-3 px-4 text-right font-bold">Preço Unitário</th>
-                  <th className="py-3 px-4 text-right font-bold font-mono">Subtotal</th>
+                <tr className="bg-neutral-100/80 border-b border-neutral-300 text-neutral-500 uppercase text-[9px] tracking-wider font-bold">
+                  <th className="py-2.5 px-3 font-bold">Item</th>
+                  <th className="py-2.5 px-3 text-center font-bold">Qtd</th>
+                  <th className="py-2.5 px-3 text-right font-bold">Valor (Un.)</th>
+                  <th className="py-2.5 px-3 text-right font-bold">Subtotal</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 bg-white">
-                {selectedOrder.items.map((item, index) => (
-                  <tr key={index} className="hover:bg-neutral-50/50">
-                    <td className="py-3.5 px-4 font-sans">
-                      <strong className="block text-neutral-900 font-bold text-xs">{item.productName}</strong>
-                      {(item.selectedColor || item.selectedSize) && (
-                        <div className="flex flex-wrap gap-1 mt-1 font-sans">
-                          {item.selectedColor && (
-                            <span className="text-[9px] bg-neutral-100 text-neutral-700 px-1.5 py-0.5 rounded-sm font-semibold">
-                              Cor: {item.selectedColor}
-                            </span>
-                          )}
-                          {item.selectedSize && (
-                            <span className="text-[9px] bg-neutral-100 text-neutral-700 px-1.5 py-0.5 rounded-sm font-semibold">
-                              Modelo: {item.selectedSize}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {item.observation && (
-                        <p className="text-[9px] italic text-amber-700 font-normal mt-1 bg-amber-50/40 p-1 rounded-sm border border-amber-100/30">
-                          Obs: "{item.observation}"
-                        </p>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4 text-center font-mono font-bold text-neutral-900">{item.quantity}</td>
-                    <td className="py-3.5 px-4 text-right font-mono text-neutral-700">R$ {item.price.toFixed(2)}</td>
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-neutral-900">R$ {(item.price * item.quantity).toFixed(2)}</td>
-                  </tr>
-                ))}
+                {selectedOrder.items.map((item, index) => {
+                  const unitPrice = item.price - (item.discount || 0);
+                  const lineTotal = unitPrice * item.quantity;
+                  return (
+                    <tr key={index} className="hover:bg-neutral-50/50">
+                      <td className="py-3 px-3 font-sans">
+                        <strong className="block text-neutral-900 font-bold text-[11px]">{item.productName}</strong>
+                        {(item.selectedColor || item.selectedSize) && (
+                          <div className="flex flex-wrap gap-1 mt-1 font-sans">
+                            {item.selectedColor && (
+                              <span className="text-[8px] bg-neutral-100 text-neutral-600 px-1 py-0.5 rounded-sm font-semibold border border-neutral-200/50">
+                                Cor: {item.selectedColor}
+                              </span>
+                            )}
+                            {item.selectedSize && (
+                              <span className="text-[8px] bg-neutral-100 text-neutral-600 px-1 py-0.5 rounded-sm font-semibold border border-neutral-200/50">
+                                Modelo: {item.selectedSize}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {item.observation && (
+                          <p className="text-[9px] text-neutral-500 font-medium mt-1">
+                            Obs: {item.observation}
+                          </p>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-center font-mono font-bold text-neutral-900 text-[11px]">{item.quantity}</td>
+                      <td className="py-3 px-3 text-right font-mono text-neutral-700 text-[11px]">
+                         R$ {unitPrice.toFixed(2)}
+                         {!!item.discount && (
+                            <span className="block text-[8px] text-rose-500 line-through">R$ {item.price.toFixed(2)}</span>
+                         )}
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono font-bold text-neutral-900 text-[11px]">R$ {lineTotal.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           {/* Total display with summary */}
-          <div className="w-1/2 ml-auto text-right space-y-2 border-t border-neutral-300 pt-4 text-xs font-bold text-neutral-800 font-sans">
-            <div className="flex justify-between font-normal text-[#7E8B99]">
+          <div className="w-[45%] ml-auto text-right space-y-1.5 border-t border-neutral-300 pt-4 text-xs font-bold text-neutral-800 font-sans">
+            <div className="flex justify-between font-medium text-neutral-500 text-[11px]">
               <span>Soma dos itens:</span>
+              <span className="font-mono">R$ {(selectedOrder.subtotal || selectedOrder.items.reduce((s,i)=>(s+(i.price-(i.discount||0))*i.quantity),0)).toFixed(2)}</span>
+            </div>
+            
+            {!!selectedOrder.couponDiscount && (
+              <div className="flex justify-between font-medium text-rose-600 text-[11px]">
+                <span>
+                  Desconto 
+                  {selectedOrder.couponCode && <span className="uppercase text-[9px] ml-1 bg-rose-100 px-1 rounded-sm"> {selectedOrder.couponCode}</span>}:
+                </span>
+                <span className="font-mono">- R$ {selectedOrder.couponDiscount.toFixed(2)}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between text-base font-black text-neutral-900 pt-2 border-t border-neutral-200">
+              <span className="tracking-tight mt-0.5">TOTAL:</span>
               <span className="font-mono">R$ {selectedOrder.total.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm font-extrabold text-neutral-900 pt-2 border-t border-dashed">
-              <span>VALOR LIQUIDO TOTAL:</span>
-              <span className="font-mono text-base">R$ {selectedOrder.total.toFixed(2)}</span>
-            </div>
-            <div className="text-[10px] text-neutral-500 font-normal mt-1">
-              Finalizado via <strong className="underline font-bold capitalize">{selectedOrder.paymentMethod}</strong>
             </div>
           </div>
 
           {/* Footer message of love (thanking for preference) */}
-          <div className="absolute bottom-12 inset-x-12 border-t border-neutral-300 pt-6 text-center text-[10px] text-neutral-500 leading-relaxed font-sans">
-            <span className="font-extrabold text-neutral-800 text-xs block mb-1.5">Muito obrigada pela sua preferência e confiança! 🌼</span>
-            <span className="font-medium text-neutral-600 block max-w-lg mx-auto">
-              Este recibo/orçamento foi gerado com carinho pelas fadas da Papelaria Lara Peçanha. Esperamos que ame cada detalhe do seu pedido! Qualquer dúvida, estamos à disposição.
-            </span>
+          <div className="absolute bottom-10 inset-x-12 pt-6 text-center text-[9px] text-neutral-500 leading-relaxed font-sans">
+            <span className="font-bold text-neutral-700 uppercase tracking-wider block mb-1">Muito obrigada pela sua preferência! 🌼</span>
+            Esperamos que ame cada detalhe do seu pedido! Qualquer dúvida, estamos à disposição.
           </div>
         </div>
       )}

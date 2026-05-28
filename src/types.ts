@@ -59,21 +59,25 @@ export interface CartItem {
   observation?: string;
 }
 
-export type OrderStatus = 'pendente' | 'aguardando_whatsapp' | 'separado' | 'enviado' | 'entregue' | 'cancelado';
+export type OrderStatus = 'Aguardando WhatsApp' | 'Em preparação' | 'Em transporte' | 'Entregue' | 'Cancelado' | 'Fechado';
 
 export interface OrderItem {
   productId: string;
   productName: string;
   quantity: number;
-  price: number;
+  price: number; // preco unitario podendo ser alterado manualmente
+  discount?: number; // desconto individual
   selectedColor?: string;
   selectedSize?: string;
   observation?: string;
 }
 
 export interface OrderHistoryEntry {
-  status: OrderStatus;
+  id?: string;
+  orderId?: string;
   timestamp: string;
+  action: string;      // tipo de alteração realizada
+  itemChanged?: string; // item alterado
   note?: string;
 }
 
@@ -84,6 +88,9 @@ export interface Order {
   customerName: string;
   customerPhone: string;
   items: OrderItem[];
+  subtotal: number;
+  couponCode?: string;
+  couponDiscount?: number;
   total: number;
   status: OrderStatus;
   paymentMethod: 'Pix' | 'cartão' | 'dinheiro' | 'transferência' | 'pendente';

@@ -151,18 +151,36 @@ export default function ShoppingCart({
       }));
 
       // 2. Generate custom Order Structure
+      const generatedCodeId = `ord-${Math.random().toString(36).substring(2, 9)}`;
       const orderPayload: Omit<Order, 'orderNumber'> = {
-        id: `ord-${Math.random().toString(36).substring(2, 9)}`,
+        id: generatedCodeId,
         createdAt: new Date().toISOString(),
         customerName: name,
         customerPhone: phone,
         items: orderItems,
+        subtotal: subtotal,
+        couponCode: appliedCoupon?.code,
+        couponDiscount: discount,
         total: finalTotal,
-        status: 'aguardando_whatsapp',
+        status: 'Aguardando WhatsApp',
         paymentMethod: paymentMethod as any,
         history: [
-          { status: 'pendente', timestamp: new Date().toISOString(), note: 'Pedido rascunhado no carrinho' },
-          { status: 'aguardando_whatsapp', timestamp: new Date().toISOString(), note: 'Aguardando contato pelo WhatsApp da proprietária' }
+          { 
+            id: `hist-${Math.random().toString(36).substring(2, 9)}`,
+            orderId: generatedCodeId,
+            action: 'Pedido criado', 
+            timestamp: new Date().toISOString(), 
+            note: 'Pedido rascunhado no carrinho',
+            itemChanged: 'status'
+          },
+          { 
+            id: `hist-${Math.random().toString(36).substring(2, 9)}`,
+            orderId: generatedCodeId,
+            action: 'Status alterado para Aguardando WhatsApp', 
+            timestamp: new Date().toISOString(), 
+            note: 'Aguardando contato pelo WhatsApp',
+            itemChanged: 'status'
+          }
         ]
       };
 

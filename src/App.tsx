@@ -45,7 +45,7 @@ function MainAppContent() {
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<string | null>(null);
 
   // Auth
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, loginEmailPassword } = useAuth() as any;
 
   // Cart operations state
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -337,10 +337,40 @@ function MainAppContent() {
         
         {isAdminView ? (
           (!authLoading && !user) || (user && user.role !== 'admin') ? (
-            <div className="flex flex-col items-center justify-center h-screen space-y-4">
-              <h2 className="font-display font-semibold text-lg text-buendia-navy">Acesso Restrito</h2>
-              <p className="text-sm text-neutral-500">Por favor, faça login com uma conta de administrador.</p>
-              {/* Add login UI/Redirect here */}
+            <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 space-y-6 animate-fade-in">
+              <div className="bg-white rounded-3xl p-8 max-w-sm w-full border border-buendia-navy/5 shadow-2xs">
+                <div className="text-center mb-6">
+                  <div className="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Compass className="h-6 w-6 text-buendia-navy" />
+                  </div>
+                  <h2 className="font-display font-semibold text-xl text-buendia-navy">Acesso Administrativo</h2>
+                  <p className="text-xs text-[#7E8B99] mt-1">Insira suas credenciais para gerenciar a loja.</p>
+                </div>
+
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+                  const pass = (form.elements.namedItem('password') as HTMLInputElement).value;
+                  
+                  const { success, error } = await loginEmailPassword(email, pass);
+                  if (!success && error) {
+                     alert(`Erro ao tentar login: ${error}`);
+                  }
+                }} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-buendia-navy mb-1.5">E-mail</label>
+                    <input name="email" type="email" required className="w-full bg-[#FCFBF7] text-xs text-buendia-navy border border-buendia-navy/10 rounded-xl p-3 focus:outline-hidden" placeholder="nome@papelaria.com" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-buendia-navy mb-1.5">Senha secreta</label>
+                    <input name="password" type="password" required className="w-full bg-[#FCFBF7] text-xs text-buendia-navy border border-buendia-navy/10 rounded-xl p-3 focus:outline-hidden" placeholder="••••••••" />
+                  </div>
+                  <button type="submit" className="w-full bg-buendia-navy text-white text-xs font-bold rounded-xl py-3 mt-2 hover:bg-opacity-95 transition-all">
+                    Entrar no Painel
+                  </button>
+                </form>
+              </div>
             </div>
           ) : (
             <AdminPanel
