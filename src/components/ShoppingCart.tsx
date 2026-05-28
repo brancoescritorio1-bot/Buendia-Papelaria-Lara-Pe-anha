@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShoppingBag, X, Trash2, ArrowRight, Tag, HelpCircle, Check, AlertCircle } from 'lucide-react';
+import { ShoppingBag, X, Trash2, ArrowRight, Tag, HelpCircle, Check, AlertCircle, MessageSquare } from 'lucide-react';
 import { CartItem, Coupon, Order, OrderItem } from '../types';
 import { useAuth } from '../lib/auth';
 import { db } from '../lib/db';
@@ -48,6 +48,7 @@ export default function ShoppingCart({
 
   // Generated Order store
   const [generatedOrder, setGeneratedOrder] = useState<Order | null>(null);
+  const [wppDirectUrl, setWppDirectUrl] = useState('');
 
   if (!isOpen) return null;
 
@@ -199,13 +200,21 @@ export default function ShoppingCart({
       // 6. Deep link redirect
       const cleanWpp = whatsappNumber.replace(/\D/g, '');
       const encodedMsg = encodeURIComponent(msg);
-      const wppUrl = `https://wa.me/55${cleanWpp}?text=${encodedMsg}`;
+      // For cross-platform mobile and desktop, use api.whatsapp.com for direct launching redirect trigger compatibility
+      const wppUrl = `https://api.whatsapp.com/send?phone=55${cleanWpp}&text=${encodedMsg}`;
+      setWppDirectUrl(wppUrl);
 
       setCheckoutStep('success');
       
-      // Delay to allow success layout state to animate, then open new tab
+      // Delay to allow success layout state to animate, then open new tab or redirect
       setTimeout(() => {
-        window.open(wppUrl, '_blank');
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+          // On mobile, browser popup managers block deferred window.open. Directly redirect parent page to open the WhatsApp App instantly
+          window.location.href = wppUrl;
+        } else {
+          window.open(wppUrl, '_blank');
+        }
       }, 1500);
 
     } catch (err) {
@@ -222,6 +231,7 @@ export default function ShoppingCart({
     setAppliedCoupon(null);
     setCouponCode('');
     setGeneratedOrder(null);
+    setWppDirectUrl('');
     onClose();
   };
 
@@ -484,12 +494,12 @@ export default function ShoppingCart({
             )}
 
             {checkoutStep === 'success' && (
-              <div className="text-center py-8 space-y-4 animate-fade-in">
+              <div className="text-center py-8 space-y-4 animate-fade-in px-4">
                 <h4 className="font-display font-semibold text-lg text-buendia-navy">
-                  Transações Prontas!
+                  Pedido Confirmado!
                 </h4>
-                <p className="text-xs text-[#7E8B99] px-6 leading-relaxed">
-                  O pedido <strong>{generatedOrder?.orderNumber}</strong> foi gerado com sucesso no nosso estoque. Uma nova guia está se abrindo com sua mensagem integrada!
+                <p className="text-xs text-[#7E8B99] px-2 leading-relaxed">
+                  O pedido <strong>{generatedOrder?.orderNumber}</strong> foi gerado com sucesso no sistema. Se o WhatsApp não abriu automaticamente, clique no botão verde abaixo para falar direto com a Lara!
                 </p>
 
                 <div className="bg-[#FCFBF7] rounded-3xl p-5 border border-buendia-navy/5 text-left text-xs text-buendia-navy space-y-2 mt-4 max-w-xs mx-auto">
@@ -499,7 +509,21 @@ export default function ShoppingCart({
                   <div><strong>STATUS ATUAL:</strong> <span className="bg-amber-100 px-2 py-0.5 rounded-sm text-amber-700 font-semibold">{generatedOrder?.status}</span></div>
                 </div>
 
-                <div className="pt-6">
+                {wppDirectUrl && (
+                  <div className="pt-2 max-w-xs mx-auto">
+                    <a
+                      href={wppDirectUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-[#25D366] text-white hover:bg-emerald-600 text-xs font-bold uppercase tracking-wider py-4 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Enviar pelo WhatsApp</span>
+                    </a>
+                  </div>
+                )}
+
+                <div className="pt-4">
                   <button
                     onClick={resetAfterSuccess}
                     className="inline-flex items-center gap-2 font-display font-semibold text-xs text-buendia-navy border-b border-buendia-navy pb-0.5 hover:text-amber-700 hover:border-amber-700 transition-colors"

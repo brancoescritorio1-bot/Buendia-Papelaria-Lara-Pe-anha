@@ -201,6 +201,15 @@ export default function AdminPanel({
     }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    if (window.confirm("Tem certeza absoluta de que deseja excluir permanentemente este pedido da loja e liberar as quantidades de retorno ao estoque?")) {
+      await db.deleteOrder(orderId);
+      setSelectedOrder(null);
+      setIsEditingOrder(false);
+      onRefreshData();
+    }
+  };
+
   const handleUpdateItemQuantity = (index: number, delta: number) => {
     const next = [...editOrderItems];
     next[index].quantity = Math.max(1, next[index].quantity + delta);
@@ -1412,6 +1421,17 @@ CREATE TABLE public.orders (
                     </div>
                   </div>
 
+                  {/* Danger Zone: Exclusive Order Deletion */}
+                  <div className="pt-4 border-t flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrder(selectedOrder.id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-rose-600 hover:text-white hover:bg-rose-600 rounded-xl text-[10px] font-bold border border-rose-200 transition-all cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Excluir Pedido Permanentemente
+                    </button>
+                  </div>
+
                 </div>
               )
             ) : (
@@ -2450,88 +2470,111 @@ CREATE TABLE public.orders (
 
       {/* 🧾 HIDDEN INVOICE SECTION (USED SEAMLESSLY VIA STANDARD WINDOW.PRINT IN COOPERATION WITH BROWSER INTERACTIVE PDF PROCESSORS) */}
       {selectedOrder && (
-        <div className="hidden print:block fixed inset-0 bg-white z-50 p-12 text-black leading-relaxed font-sans text-xs">
+        <div className="hidden print:block print-container fixed inset-0 bg-white z-50 p-8 text-black leading-relaxed font-sans text-xs">
           {/* Invoice header logo */}
           <div className="border-b-2 border-neutral-300 pb-6 mb-6 flex justify-between items-start">
             <div className="flex items-center gap-4">
-              {settings?.logoImageUrl && (
+              {settings?.logoImageUrl ? (
                 <img src={settings.logoImageUrl} alt="Logo" className="w-16 h-16 object-contain rounded-xl border p-1 bg-white" />
+              ) : (
+                <div className="w-16 h-16 rounded-xl border p-1 bg-neutral-50 flex items-center justify-center font-bold text-lg text-buendia-navy">🌼</div>
               )}
               <div>
-                <h1 className="font-sans font-black text-2xl text-buendia-navy tracking-tight">🌼 {settings?.logo || 'Buendía Papelaria'}</h1>
+                <h1 className="font-sans font-black text-2xl text-[#0F2A4A] tracking-tight">🌼 {settings?.logo || 'Papelaria Lara Peçanha'}</h1>
                 <p className="text-neutral-600 text-[10px] max-w-sm mt-1 leading-normal font-sans">
-                  {settings?.address || 'Rua Buendia, nº 100 - Papelaria Criativa'} <br />
-                  WhatsApp: {settings?.whatsappNumber || settings?.phoneNumber || '(11) 99999-9999'} | Instagram: @{settings?.instagramHandle || 'buendia.papelaria'}
+                  {settings?.address || 'Montes Claros - MG - Papelaria Criativa & Presentes'} <br />
+                  WhatsApp: {settings?.whatsappNumber || settings?.phoneNumber || '(38) 99999-9999'} | Instagram: @{settings?.instagramHandle || 'papelaria_larapesanha'}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <h2 className="font-sans font-extrabold text-base text-neutral-800 tracking-wider">CUPOM DE RECONHECIMENTO DE PEDIDO</h2>
-              <span className="font-mono font-bold text-sm text-[#7E8B99]">Código: {selectedOrder.orderNumber}</span> <br />
-              <span className="text-[10px] text-[#7E8B99] font-sans">Data Emissão: {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')} às {new Date(selectedOrder.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</span>
+              <h2 className="font-sans font-extrabold text-sm text-neutral-800 tracking-wider">ORÇAMENTO / RECIBO DE PEDIDO</h2>
+              <span className="font-mono font-bold text-sm text-[#7E8B99]">Nº do Pedido: {selectedOrder.orderNumber}</span> <br />
+              <span className="text-[10px] text-[#7E8B99] font-sans">Emissão: {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')} às {new Date(selectedOrder.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}</span>
             </div>
           </div>
 
           {/* Client summary */}
           <div className="grid grid-cols-2 gap-8 bg-neutral-50 p-5 rounded-2xl border mb-6 text-neutral-800 font-sans">
             <div>
-              <span className="text-[9px] uppercase tracking-wider text-[#7E8B99] block font-bold mb-1">DADOS DA CLIENTE AMADA</span>
-              <div className="font-extrabold text-neutral-900">{selectedOrder.customerName}</div>
-              <div className="text-[10px]">Celular/WhatsApp: {selectedOrder.customerPhone || 'Não informado'}</div>
+              <span className="text-[9px] uppercase tracking-wider text-[#7E8B99] block font-bold mb-1">DADOS DA CLIENTE</span>
+              <div className="font-extrabold text-neutral-900 text-sm">{selectedOrder.customerName}</div>
+              <div className="text-[10px] mt-1">Celular/WhatsApp: {selectedOrder.customerPhone || 'Não informado'}</div>
             </div>
             <div>
-              <span className="text-[9px] uppercase tracking-wider text-[#7E8B99] block font-bold mb-1">TRANSAÇÃO E ENVIO</span>
-              <div className="text-[10px]">Forma de Pagamento: <strong className="font-extrabold underline">{selectedOrder.paymentMethod}</strong></div>
-              <div className="text-[10px]">Status do Pedido: <span className="font-bold px-1 rounded-sm bg-neutral-200 capitalize text-neutral-800 text-[9px]">{selectedOrder.status.replace('_', ' ')}</span></div>
+              <span className="text-[9px] uppercase tracking-wider text-[#7E8B99] block font-bold mb-1">CONDIÇÕES DA COMPRA</span>
+              <div className="text-[10px] mt-1">Forma de Pagamento: <strong className="font-extrabold underline capitalize">{selectedOrder.paymentMethod}</strong></div>
+              <div className="text-[10px]">Data: {new Date(selectedOrder.createdAt).toLocaleDateString('pt-BR')}</div>
+              <div className="text-[10px]">Status Atual: <span className="font-bold px-1.5 py-0.5 rounded-md bg-neutral-200 capitalize text-neutral-800 text-[9px]">{selectedOrder.status.replace('_', ' ')}</span></div>
             </div>
           </div>
 
-          {/* Table list items */}
-          <table className="w-full text-left border-collapse mb-8 text-neutral-00 font-sans">
-            <thead>
-              <tr className="border-b-2 border-neutral-300 text-[#7E8B99] uppercase text-[9px] tracking-wider font-bold">
-                <th className="py-2.5 font-bold">Mimo / Caneta / Item Descrição</th>
-                <th className="py-2.5 text-center font-bold">Quant.</th>
-                <th className="py-2.5 text-right font-bold">Preço Unitário</th>
-                <th className="py-2.5 text-right font-bold">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200 text-neutral-800">
-              {selectedOrder.items.map((item, index) => (
-                <tr key={index} className="py-3">
-                  <td className="py-3">
-                    <strong className="block text-neutral-900 font-bold">{item.productName}</strong>
-                    {(item.selectedColor || item.selectedSize) && (
-                      <span className="text-[9px] text-amber-700 font-medium">
-                        Opção selecionada: {[item.selectedColor, item.selectedSize].filter(Boolean).join(', ')}
-                      </span>
-                    )}
-                    {item.observation && <p className="text-[9px] italic text-[#7E8B99] font-normal mt-0.5">- Obs: "{item.observation}"</p>}
-                  </td>
-                  <td className="py-3 text-center font-mono font-bold text-neutral-900">{item.quantity}</td>
-                  <td className="py-3 text-right font-mono text-neutral-700">R$ {item.price.toFixed(2)}</td>
-                  <td className="py-3 text-right font-mono font-bold text-neutral-900">R$ {(item.price * item.quantity).toFixed(2)}</td>
+          {/* Description Box table (Styled like a clean estimate box) */}
+          <div className="border border-neutral-200 rounded-2xl overflow-hidden mb-6">
+            <table className="w-full text-left border-collapse text-neutral-800 font-sans">
+              <thead>
+                <tr className="bg-neutral-100 border-b-2 border-neutral-300 text-[#7E8B99] uppercase text-[9px] tracking-wider font-bold">
+                  <th className="py-3 px-4 font-bold">Mimo / Item Descrição</th>
+                  <th className="py-3 px-4 text-center font-bold">Quant.</th>
+                  <th className="py-3 px-4 text-right font-bold">Preço Unitário</th>
+                  <th className="py-3 px-4 text-right font-bold font-mono">Subtotal</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-neutral-200 bg-white">
+                {selectedOrder.items.map((item, index) => (
+                  <tr key={index} className="hover:bg-neutral-50/50">
+                    <td className="py-3.5 px-4 font-sans">
+                      <strong className="block text-neutral-900 font-bold text-xs">{item.productName}</strong>
+                      {(item.selectedColor || item.selectedSize) && (
+                        <div className="flex flex-wrap gap-1 mt-1 font-sans">
+                          {item.selectedColor && (
+                            <span className="text-[9px] bg-neutral-100 text-neutral-700 px-1.5 py-0.5 rounded-sm font-semibold">
+                              Cor: {item.selectedColor}
+                            </span>
+                          )}
+                          {item.selectedSize && (
+                            <span className="text-[9px] bg-neutral-100 text-neutral-700 px-1.5 py-0.5 rounded-sm font-semibold">
+                              Modelo: {item.selectedSize}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {item.observation && (
+                        <p className="text-[9px] italic text-amber-700 font-normal mt-1 bg-amber-50/40 p-1 rounded-sm border border-amber-100/30">
+                          Obs: "{item.observation}"
+                        </p>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-center font-mono font-bold text-neutral-900">{item.quantity}</td>
+                    <td className="py-3.5 px-4 text-right font-mono text-neutral-700">R$ {item.price.toFixed(2)}</td>
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-neutral-900">R$ {(item.price * item.quantity).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-          {/* Total display */}
-          <div className="w-1/2 ml-auto text-right space-y-2 border-t-2 border-neutral-300 pt-4 text-xs font-bold text-neutral-800 font-sans">
-            <div className="flex justify-between font-normal text-neutral-500">
+          {/* Total display with summary */}
+          <div className="w-1/2 ml-auto text-right space-y-2 border-t border-neutral-300 pt-4 text-xs font-bold text-neutral-800 font-sans">
+            <div className="flex justify-between font-normal text-[#7E8B99]">
               <span>Soma dos itens:</span>
               <span className="font-mono">R$ {selectedOrder.total.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-base font-extrabold text-neutral-900 pt-2 border-t border-dashed">
-              <span>VALOR LÍQUIDO TOTAL:</span>
-              <span className="font-mono">R$ {selectedOrder.total.toFixed(2)}</span>
+            <div className="flex justify-between text-sm font-extrabold text-neutral-900 pt-2 border-t border-dashed">
+              <span>VALOR LIQUIDO TOTAL:</span>
+              <span className="font-mono text-base">R$ {selectedOrder.total.toFixed(2)}</span>
+            </div>
+            <div className="text-[10px] text-neutral-500 font-normal mt-1">
+              Finalizado via <strong className="underline font-bold capitalize">{selectedOrder.paymentMethod}</strong>
             </div>
           </div>
 
-          {/* Footer message of love */}
+          {/* Footer message of love (thanking for preference) */}
           <div className="absolute bottom-12 inset-x-12 border-t border-neutral-300 pt-6 text-center text-[10px] text-neutral-500 leading-relaxed font-sans">
-            <p className="font-extrabold text-neutral-800 text-[11px] mb-1">Obrigada pela sua preferência! Buendía - Papelaria</p>
-            <p className="font-medium text-neutral-600">Este cupom foi gerado com as informações oficiais para conferência e empacotamento dos seus produtos. Esperamos que goste de cada detalhe da sua encomenda!</p>
+            <span className="font-extrabold text-neutral-800 text-xs block mb-1.5">Muito obrigada pela sua preferência e confiança! 🌼</span>
+            <span className="font-medium text-neutral-600 block max-w-lg mx-auto">
+              Este recibo/orçamento foi gerado com carinho pelas fadas da Papelaria Lara Peçanha. Esperamos que ame cada detalhe do seu pedido! Qualquer dúvida, estamos à disposição.
+            </span>
           </div>
         </div>
       )}

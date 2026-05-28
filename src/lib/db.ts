@@ -613,6 +613,42 @@ export const db = {
     return null;
   },
 
+  async deleteOrder(id: string): Promise<boolean> {
+    const list = loadOrders();
+    const idx = list.findIndex(o => o.id === id);
+    if (idx >= 0) {
+      const order = list[idx];
+      
+      // If stock was deducted, return it to products list
+      if (order.stockDeducted) {
+        const products = loadProducts();
+        for (const item of order.items) {
+          const prod = products.find(p => p.id === item.productId);
+          if (prod) {
+            prod.stock += item.quantity;
+            prod.isOutOfStock = false;
+          }
+        }
+        saveProducts(products);
+        if (supabase) {
+          for (const item of order.items) {
+            const p = products.find(pr => pr.id === item.productId);
+            if (p) await supabase.from('products').upsert(p);
+          }
+        }
+      }
+
+      list.splice(idx, 1);
+      saveOrders(list);
+
+      if (supabase) {
+        await supabase.from('orders').delete().eq('id', id);
+      }
+      return true;
+    }
+    return false;
+  },
+
   // --- COUPONS ---
   async getCoupons(): Promise<Coupon[]> {
     if (supabase) {
